@@ -1,0 +1,24 @@
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Flask runtime data
+flask_session/
+
+# Logs & outputs
+smtp_result.txt
+
+# Tests (local only)
+test_smtp.py
+test_socket.py
+
+# Node
+node_modules/
+
+# Editor settings
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db

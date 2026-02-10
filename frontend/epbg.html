@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EPBG's - Data Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body class="epbg-page">
+    <div class="dashboard-container">
+        <!-- Mobile Menu Toggle -->
+        <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Toggle Menu">
+            <i class="fas fa-bars"></i>
+        </button>
+        
+        <!-- Mobile Overlay -->
+        <div class="mobile-overlay" id="mobileOverlay"></div>
+
+        <!-- Sidebar Toggle Button -->
+        <button class="sidebar-toggle-btn" id="sidebarToggleBtn" aria-label="Toggle Sidebar">
+            <i class="fas fa-bars"></i>
+        </button>
+
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-grid">
+                        <img src="CMRL.png" class="logo-image">
+                    </div>
+                    <span class="logo-text">Data Dashboard</span>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="index.html" class="nav-item" data-module="contractor-list">
+                    <i class="fas fa-list"></i>
+                    <span>Contractor List</span>
+                </a>
+                <a href="bill-tracker.html" class="nav-item" data-module="bill-tracker">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                    <span>Bill Tracker</span>
+                </a>
+                <a href="epbg.html" class="nav-item active" data-module="epbgs">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>EPBG's</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-left">
+                    <h1 class="page-title">EPBG's</h1>
+                    <p class="welcome-text">Manage EPBG details and attachments.</p>
+                </div>
+                <div class="header-right">
+                    <!-- Header Navigation Icons -->
+                    <nav class="header-nav">
+                        <a href="index.html" class="header-nav-item" data-page="contractor-list" title="Contractor List">
+                            <i class="fas fa-list"></i>
+                        </a>
+                        <a href="bill-tracker.html" class="header-nav-item" data-page="bill-tracker" title="Bill Tracker">
+                            <i class="fas fa-file-invoice-dollar"></i>
+                        </a>
+                        <a href="epbg.html" class="header-nav-item active" data-page="epbg" title="EPBG">
+                            <i class="fas fa-shield-alt"></i>
+                        </a>
+                    </nav>
+                    
+                    <!-- Header Action Buttons -->
+                    <div class="header-actions">
+                        <button class="header-action-btn save-btn" id="saveBtn" title="Save">
+                            <i class="fas fa-save"></i>
+                        </button>
+                        <button class="header-action-btn undo-btn" id="undoBtn" title="Undo (Ctrl+Z)">
+                            <i class="fas fa-undo"></i>
+                        </button>
+                        <button class="header-action-btn redo-btn" id="redoBtn" title="Redo (Ctrl+Y)">
+                            <i class="fas fa-redo"></i>
+                        </button>
+                        <button class="header-action-btn refresh-btn" id="refreshBtn" title="Refresh">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button class="header-action-btn print-btn" id="printBtn" title="Print">
+                            <i class="fas fa-print"></i>
+                        </button>
+                        <button class="header-action-btn export-btn" id="exportBtn" title="Export">
+                            <i class="fas fa-download"></i>
+                        </button>
+                    </div>
+                    
+                    <button id="themeToggleBtn" class="theme-toggle-btn" aria-label="Toggle Theme">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                    <div class="search-container">
+                        <i class="fas fa-search search-icon"></i>
+                        <input type="text" class="search-input" placeholder="Search...">
+                    </div>
+                    <button class="notification-btn" id="notificationBellBtn">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge" id="notificationBadge">0</span>
+                    </button>
+                    <div class="profile-dropdown-wrapper">
+                        <button class="profile-trigger" id="profileTrigger">
+                            <div class="profile-avatar" id="userAvatar">U</div>
+                            <i class="fas fa-chevron-down profile-arrow"></i>
+                        </button>
+                        <div class="profile-dropdown" id="profileDropdown">
+                            <div class="profile-dropdown-header">
+                                <div class="profile-avatar-large" id="userAvatarLarge">U</div>
+                                <div class="profile-dropdown-info">
+                                    <div class="profile-dropdown-name" id="userNameDropdown">Loading...</div>
+                                    <div class="profile-dropdown-role" id="userRoleDropdown">Loading...</div>
+                                </div>
+                            </div>
+                            <div class="profile-dropdown-divider"></div>
+
+                            <a href="#" class="profile-dropdown-item" id="helpMenuItem">
+                                <i class="fas fa-question-circle"></i>
+                                <span>Help & Support</span>
+                            </a>
+                            <div class="profile-dropdown-divider"></div>
+                            <a href="#" class="profile-dropdown-item logout-item" id="logoutBtn">
+                                <i class="fas fa-sign-out-alt"></i>
+                                <span>Logout</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Content Area -->
+            <div class="content-area">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">EPBG Details</h2>
+                        <span class="total-badge" id="totalBadge">Total: 0</span>
+                    </div>
+
+                    <div class="table-container">
+                        <table class="data-table" id="dataTable">
+                            <thead>
+                                <tr>
+                                    <th>S.NO</th>
+                                    <th>CONTRACTOR</th>
+                                    <th>P.O NO</th>
+                                    <th>BG NO</th>
+                                    <th>BG DATE</th>
+                                    <th>BG AMOUNT</th>
+                                    <th>BG VALIDITY</th>
+                                    <th>GeM BID NO</th>
+                                    <th>REF EFILE NO</th>
+                                    <th>ATTACHMENT</th>
+                                    <th>BG NO ATTACHMENT</th>
+                                    <th>ACTION</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBody">
+                                <!-- Rows will be added dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="add-row-container">
+                        <button class="add-row-btn" id="addRowBtn">
+                            <i class="fas fa-plus"></i>
+                            <span>Add Row</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Language Selection Modal -->
+    <div class="modal-overlay" id="languageModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-globe"></i> Select Language</h3>
+                <button class="modal-close" id="closeLanguageModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="language-options">
+                    <button class="language-option active" data-lang="en">
+                        <i class="fas fa-check-circle"></i>
+                        <span>English</span>
+                    </button>
+                    <button class="language-option" data-lang="ta">
+                        <i class="far fa-circle"></i>
+                        <span>தமிழ் (Tamil)</span>
+                    </button>
+                    <button class="language-option" data-lang="fr">
+                        <i class="far fa-circle"></i>
+                        <span>Français (French)</span>
+                    </button>
+                    <button class="language-option" data-lang="hi">
+                        <i class="far fa-circle"></i>
+                        <span>हिन्दी (Hindi)</span>
+                    </button>
+                    <button class="language-option" data-lang="es">
+                        <i class="far fa-circle"></i>
+                        <span>Español (Spanish)</span>
+                    </button>
+                    <button class="language-option" data-lang="de">
+                        <i class="far fa-circle"></i>
+                        <span>Deutsch (German)</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div class="modal-overlay" id="helpModal">
+        <div class="modal-content help-modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-question-circle"></i> Help & Support</h3>
+                <button class="modal-close" id="closeHelpModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="help-section">
+                    <h4><i class="fas fa-book"></i> Quick Guide</h4>
+                    <ul class="help-list">
+                        <li><strong>Add Data:</strong> Click the "Add Row" button to add a new contractor entry</li>
+                        <li><strong>Edit Data:</strong> Click on any field to edit the information</li>
+                        <li><strong>Save:</strong> Click the "Save" button to store your changes</li>
+                        <li><strong>Export:</strong> Download your data as an Excel file</li>
+                        <li><strong>Search:</strong> Use the search bar to filter your data</li>
+                    </ul>
+                </div>
+                <div class="help-section">
+                    <h4><i class="fas fa-bell"></i> Notifications</h4>
+                    <p>You'll receive alerts when contracts are approaching their end date (within 30 days).</p>
+                </div>
+                <div class="help-section">
+                    <h4><i class="fas fa-envelope"></i> Contact Support</h4>
+                    <p>For technical assistance, please contact:</p>
+                    <p><strong>Email:</strong> support@cmrl.com</p>
+                    <p><strong>Phone:</strong> +91 44 1234 5678</p>
+                </div>
+            </div>
+        </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="auth.js"></script>
+    <script src="api.js"></script>
+    <script src="epbg.js"></script>
+    <script>
+        // Check authentication on page load
+        (async function () {
+            const user = await Auth.checkAuth();
+            if (user) {
+                // Update UI with user info
+                const userName = user.name;
+                const userRole = user.role.charAt(0).toUpperCase() + user.role.slice(1);
+                const userInitials = userName.split(' ').map(n => n[0]).join('').toUpperCase();
+                
+                document.getElementById('userAvatar').textContent = userInitials;
+                document.getElementById('userAvatarLarge').textContent = userInitials;
+                document.getElementById('userNameDropdown').textContent = userName;
+                document.getElementById('userRoleDropdown').textContent = userRole;
+            }
+        })();
+
+        // Profile dropdown toggle
+        const profileTrigger = document.getElementById('profileTrigger');
+        const profileDropdown = document.getElementById('profileDropdown');
+        
+        if (profileTrigger && profileDropdown) {
+            profileTrigger.addEventListener('click', function(e) {
+                e.stopPropagation();
+                profileDropdown.classList.toggle('show');
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!profileTrigger.contains(e.target) && !profileDropdown.contains(e.target)) {
+                    profileDropdown.classList.remove('show');
+                }
+            });
+        }
+
+        // Header Navigation Functionality
+        const headerNavItems = document.querySelectorAll('.header-nav-item');
+        
+        // Set active state based on current page
+        function setActiveHeaderNavItem() {
+            const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+            
+            headerNavItems.forEach(item => {
+                const itemPage = item.getAttribute('href');
+                item.classList.remove('active');
+                
+                if (currentPage === itemPage || 
+                    (currentPage === '' && itemPage === 'index.html') ||
+                    (currentPage.includes('epbg') && itemPage === 'epbg.html')) {
+                    item.classList.add('active');
+                }
+            });
+        }
+        
+        // Initialize active state
+        setActiveHeaderNavItem();
+        
+        // Add click handlers for header navigation
+        headerNavItems.forEach(item => {
+            item.addEventListener('click', function(e) {
+                // Remove active class from all items
+                headerNavItems.forEach(navItem => navItem.classList.remove('active'));
+                // Add active class to clicked item
+                this.classList.add('active');
+            });
+        });
+
+        // Sidebar Toggle Functionality
+        const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
+        const mainContent = document.querySelector('.main-content');
+        const sidebar = document.getElementById('sidebar');
+        
+        if (sidebarToggleBtn && sidebar && mainContent) {
+            // Load saved preference
+            const isSidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+            
+            function updateSidebarVisibility(collapsed) {
+                if (collapsed) {
+                    sidebar.classList.add('collapsed');
+                    mainContent.classList.add('expanded');
+                    sidebarToggleBtn.classList.remove('active');
+                    sidebarToggleBtn.innerHTML = '<i class="fas fa-bars"></i>';
+                    sidebarToggleBtn.title = 'Show Sidebar';
+                } else {
+                    sidebar.classList.remove('collapsed');
+                    mainContent.classList.remove('expanded');
+                    sidebarToggleBtn.classList.add('active');
+                    sidebarToggleBtn.innerHTML = '<i class="fas fa-times"></i>';
+                    sidebarToggleBtn.title = 'Hide Sidebar';
+                }
+                localStorage.setItem('sidebarCollapsed', collapsed);
+            }
+            
+            // Set initial state
+            updateSidebarVisibility(isSidebarCollapsed);
+            
+            // Toggle on click
+            sidebarToggleBtn.addEventListener('click', function() {
+                const currentlyCollapsed = sidebar.classList.contains('collapsed');
+                updateSidebarVisibility(!currentlyCollapsed);
+            });
+        }
+
+        // Language menu item
+        const languageMenuItem = document.getElementById('languageMenuItem');
+        const languageModal = document.getElementById('languageModal');
+        const closeLanguageModal = document.getElementById('closeLanguageModal');
+        
+        if (languageMenuItem && languageModal) {
+            languageMenuItem.addEventListener('click', function(e) {
+                e.preventDefault();
+                profileDropdown.classList.remove('show');
+                languageModal.classList.add('show');
+            });
+
+            closeLanguageModal.addEventListener('click', function() {
+                languageModal.classList.remove('show');
+            });
+
+            languageModal.addEventListener('click', function(e) {
+                if (e.target === languageModal) {
+                    languageModal.classList.remove('show');
+                }
+            });
+
+            // Language option selection
+            const languageOptions = document.querySelectorAll('.language-option');
+            languageOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    languageOptions.forEach(opt => {
+                        opt.classList.remove('active');
+                        opt.querySelector('i').className = 'far fa-circle';
+                    });
+                    this.classList.add('active');
+                    this.querySelector('i').className = 'fas fa-check-circle';
+                    
+                    // Store language preference
+                    const lang = this.dataset.lang;
+                    localStorage.setItem('language', lang);
+                    
+                    // Close modal after selection
+                    setTimeout(() => {
+                        languageModal.classList.remove('show');
+                    }, 300);
+                });
+            });
+
+            // Load saved language preference
+            const savedLang = localStorage.getItem('language') || 'en';
+            languageOptions.forEach(option => {
+                if (option.dataset.lang === savedLang) {
+                    option.classList.add('active');
+                    option.querySelector('i').className = 'fas fa-check-circle';
+                } else {
+                    option.classList.remove('active');
+                    option.querySelector('i').className = 'far fa-circle';
+                }
+            });
+        }
+
+        // Help menu item
+        const helpMenuItem = document.getElementById('helpMenuItem');
+        const helpModal = document.getElementById('helpModal');
+        const closeHelpModal = document.getElementById('closeHelpModal');
+        
+        if (helpMenuItem && helpModal) {
+            helpMenuItem.addEventListener('click', function(e) {
+                e.preventDefault();
+                profileDropdown.classList.remove('show');
+                helpModal.classList.add('show');
+            });
+
+            closeHelpModal.addEventListener('click', function() {
+                helpModal.classList.remove('show');
+            });
+
+            helpModal.addEventListener('click', function(e) {
+                if (e.target === helpModal) {
+                    helpModal.classList.remove('show');
+                }
+            });
+        }
+
+        // Logout handler
+        document.getElementById('logoutBtn').addEventListener('click', function (e) {
+            e.preventDefault();
+            if (confirm('Are you sure you want to logout?')) {
+                Auth.logout();
+            }
+        });
+
+        // Mobile Menu Toggle
+        const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+        const mobileOverlay = document.getElementById('mobileOverlay');
+        
+        if (mobileMenuToggle) {
+            mobileMenuToggle.addEventListener('click', function() {
+                sidebar.classList.toggle('mobile-active');
+                mobileOverlay.classList.toggle('active');
+                const icon = this.querySelector('i');
+                if (sidebar.classList.contains('mobile-active')) {
+                    icon.className = 'fas fa-times';
+                } else {
+                    icon.className = 'fas fa-bars';
+                }
+            });
+        }
+        
+        if (mobileOverlay) {
+            mobileOverlay.addEventListener('click', function() {
+                sidebar.classList.remove('mobile-active');
+                this.classList.remove('active');
+                mobileMenuToggle.querySelector('i').className = 'fas fa-bars';
+            });
+        }
+        
+        const navItems = document.querySelectorAll('.nav-item');
+        navItems.forEach(item => {
+            item.addEventListener('click', function() {
+                if (window.innerWidth <= 1024) {
+                    sidebar.classList.remove('mobile-active');
+                    mobileOverlay.classList.remove('active');
+                    mobileMenuToggle.querySelector('i').className = 'fas fa-bars';
+                }
+            });
+        });
+        
+        const searchInput = document.querySelector('.search-input');
+        if (searchInput) {
+            searchInput.addEventListener('click', function() {
+                if (window.innerWidth <= 768 && !this.classList.contains('expanded')) {
+                    this.classList.add('expanded');
+                    this.focus();
+                }
+            });
+            searchInput.addEventListener('blur', function() {
+                if (window.innerWidth <= 768 && this.value === '') {
+                    this.classList.remove('expanded');
+                }
+            });
+        }
+    </script>
+</body>
+
+</html>
