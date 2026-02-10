@@ -1,0 +1,12 @@
+import sys
+import os
+sys.path.append(os.path.dirname(__file__))
+
+from app import init_database
+
+# Initialize the database
+result = init_database()
+if result:
+    print("Database initialized successfully")
+else:
+    print("Database initialization failed")
