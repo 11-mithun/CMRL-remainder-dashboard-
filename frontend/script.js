@@ -8,6 +8,195 @@ let history = [];
 let historyIndex = -1;
 const MAX_HISTORY_SIZE = 50;
 
+// Bulk operations global variables
+let selectedRows = new Set();
+let editMode = false;
+let auditTrail = {};
+
+// Update bulk operations UI
+function updateBulkUI() {
+    const selectedCount = document.getElementById('selectedCount');
+    const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
+    const bulkEditBtn = document.getElementById('bulkEditBtn');
+    const count = selectedRows.size;
+    
+    if (count > 0) {
+        if (selectedCount) {
+            selectedCount.textContent = `${count} selected`;
+            selectedCount.style.display = 'inline-block';
+        }
+        if (bulkDeleteBtn) {
+            bulkDeleteBtn.style.display = 'flex';
+        }
+        if (bulkEditBtn) {
+            bulkEditBtn.style.display = 'flex';
+        }
+    } else {
+        if (selectedCount) {
+            selectedCount.style.display = 'none';
+        }
+        if (bulkDeleteBtn) {
+            bulkDeleteBtn.style.display = 'none';
+        }
+        if (bulkEditBtn) {
+            bulkEditBtn.style.display = 'none';
+        }
+    }
+}
+
+// Bulk delete selected rows
+function bulkDeleteSelected() {
+    if (selectedRows.size === 0) return;
+    
+    if (confirm(`Are you sure you want to delete ${selectedRows.size} selected row(s)?`)) {
+        selectedRows.forEach(row => {
+            // Add to audit trail
+            const sno = row.querySelector('.sno-input')?.value || 'Unknown';
+            addAuditEntry('bulk_delete', sno, 'Row deleted', 'Bulk delete operation');
+            
+            // Remove row
+            row.remove();
+        });
+        
+        selectedRows.clear();
+        updateBulkUI();
+        updateTotalCount();
+        saveState();
+    }
+}
+
+// Toggle bulk edit mode
+function toggleBulkEditMode() {
+    editMode = !editMode;
+    const editModeIndicator = document.getElementById('editModeIndicator');
+    
+    if (editMode) {
+        selectedRows.forEach(row => {
+            row.classList.add('edit-mode');
+            // Enable all inputs in the row
+            const inputs = row.querySelectorAll('input, select');
+            inputs.forEach(input => {
+                input.removeAttribute('readonly');
+                input.removeAttribute('disabled');
+            });
+        });
+        
+        if (editModeIndicator) {
+            editModeIndicator.classList.add('show');
+        }
+    } else {
+        document.querySelectorAll('.edit-mode').forEach(row => {
+            row.classList.remove('edit-mode');
+        });
+        
+        if (editModeIndicator) {
+            editModeIndicator.classList.remove('show');
+        }
+    }
+}
+
+// Add audit trail entry
+function addAuditEntry(action, identifier, details, user) {
+    const timestamp = new Date().toISOString();
+    const currentUser = user || getCurrentUser();
+    
+    if (!auditTrail[identifier]) {
+        auditTrail[identifier] = [];
+    }
+    
+    auditTrail[identifier].push({
+        action,
+        details,
+        user: currentUser,
+        timestamp,
+        originalValue: details
+    });
+    
+    // Keep only last 10 entries per identifier
+    if (auditTrail[identifier].length > 10) {
+        auditTrail[identifier] = auditTrail[identifier].slice(-10);
+    }
+}
+
+// Get current user (simplified)
+function getCurrentUser() {
+    const userAvatar = document.getElementById('userAvatar');
+    const userName = document.getElementById('userNameDropdown');
+    return userName?.textContent || userAvatar?.textContent || 'Unknown User';
+}
+
+// Setup right-click audit trail context menu
+function setupAuditTrailContextMenu() {
+    const auditMenu = document.getElementById('auditMenu');
+    
+    // Add context menu to all input fields
+    document.addEventListener('contextmenu', function(e) {
+        const target = e.target;
+        if (target.matches('input, select')) {
+            e.preventDefault();
+            showAuditMenu(e, target);
+        }
+    });
+    
+    // Hide menu when clicking outside
+    document.addEventListener('click', function(e) {
+        if (auditMenu && !auditMenu.contains(e.target)) {
+            auditMenu.classList.remove('show');
+        }
+    });
+}
+
+// Show audit trail context menu
+function showAuditMenu(e, element) {
+    const auditMenu = document.getElementById('auditMenu');
+    const row = element.closest('tr');
+    const sno = row?.querySelector('.sno-input')?.value || 'Unknown';
+    
+    // Update audit menu content
+    const auditField = document.getElementById('auditField');
+    const auditValue = document.getElementById('auditValue');
+    const auditTime = document.getElementById('auditTime');
+    const auditUser = document.getElementById('auditUser');
+    const auditModified = document.getElementById('auditModified');
+    const auditOriginal = document.getElementById('auditOriginal');
+    const auditOriginalTime = document.getElementById('auditOriginalTime');
+    
+    // Get field name from element
+    const fieldClass = element.className;
+    let fieldName = 'Unknown Field';
+    if (fieldClass.includes('sno')) fieldName = 'S.NO';
+    else if (fieldClass.includes('efile')) fieldName = 'E-FILE';
+    else if (fieldClass.includes('contractor')) fieldName = 'CONTRACTOR';
+    else if (fieldClass.includes('description')) fieldName = 'DESCRIPTION';
+    else if (fieldClass.includes('value')) fieldName = 'VALUE';
+    else if (fieldClass.includes('gst')) fieldName = 'GST';
+    else if (fieldClass.includes('start-date')) fieldName = 'START DATE';
+    else if (fieldClass.includes('end-date')) fieldName = 'END DATE';
+    
+    // Update display
+    if (auditField) auditField.textContent = fieldName;
+    if (auditValue) auditValue.textContent = element.value || 'Empty';
+    if (auditTime) auditTime.textContent = new Date().toLocaleString();
+    
+    // Get audit trail data
+    const trail = auditTrail[sno] || [];
+    const latestEntry = trail[trail.length - 1];
+    
+    if (latestEntry) {
+        if (auditUser) auditUser.textContent = latestEntry.user;
+        if (auditModified) auditModified.textContent = new Date(latestEntry.timestamp).toLocaleString();
+        if (auditOriginal) auditOriginal.textContent = latestEntry.originalValue;
+        if (auditOriginalTime) auditOriginalTime.textContent = new Date(latestEntry.timestamp).toLocaleString();
+    }
+    
+    // Position and show menu
+    if (auditMenu) {
+        auditMenu.style.left = e.pageX + 'px';
+        auditMenu.style.top = e.pageY + 'px';
+        auditMenu.classList.add('show');
+    }
+}
+
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function () {
     // Add refresh warning
@@ -200,126 +389,54 @@ function getContractorValue(row) {
     return contractorInput ? contractorInput.value.trim() : '';
 }
 
-// Add new row to table
+// Add row function (updated with checkbox)
 function addRow() {
-    const tbody = document.getElementById('tableBody');
-    const row = document.createElement('tr');
+    return addRowWithCheckbox();
+}
+
+// Initialize everything when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize table filters
+    initializeTableFilters();
     
-    // Calculate the next serial number based on current rows
-    const currentRows = tbody.querySelectorAll('tr');
-    const nextSerialNumber = currentRows.length + 1;
-
-    row.innerHTML = `
-        <td>
-            <input type="text" class="sno-input" placeholder="Enter S.No" value="${nextSerialNumber}">
-        </td>
-        <td>
-            <input type="text" class="efile-input" placeholder="Enter E-File">
-        </td>
-        <td>
-            <input type="text" class="contractor-input" placeholder="Enter Contractor">
-            <a href="#" class="contractor-link" style="display: none;" target="_blank"></a>
-        </td>
-        <td>
-            <input type="text" class="description-input" placeholder="Enter Description">
-        </td>
-        <td>
-            <input type="text" class="value-input" placeholder="Enter Value">
-        </td>
-        <td>
-            <select class="gst-select">
-                <option value="">Select GST</option>
-                <option value="0%">0%</option>
-                <option value="5%">5%</option>
-                <option value="12%">12%</option>
-                <option value="18%">18%</option>
-                <option value="28%">28%</option>
-                <option value="with gst">With GST</option>
-                <option value="without gst">Without GST</option>
-            </select>
-        </td>
-        <td>
-            <input type="date" class="start-date-input">
-        </td>
-        <td>
-            <input type="date" class="end-date-input">
-        </td>
-        <td class="duration-cell">
-            <span class="duration-display">-</span>
-        </td>
-        <td>
-            <input type="file" class="attachment-input" id="attachment-${nextSerialNumber}" accept=".pdf,.doc,.docx,.xls,.xlsx" style="display: none;">
-            <button type="button" class="attachment-btn" onclick="document.getElementById('attachment-${nextSerialNumber}').click()">
-                <i class="fas fa-paperclip"></i>
-                <span class="btn-text">Attach File</span>
-            </button>
-            <span class="file-name">No file selected</span>
-        </td>
-        <td>
-            <button class="delete-btn" onclick="deleteRow(this)">
-                <i class="fas fa-trash"></i> Delete
-            </button>
-        </td>
-    `;
-
-    tbody.appendChild(row);
-
-    // Add event listeners for date calculation
-    const startDateInput = row.querySelector('.start-date-input');
-    const endDateInput = row.querySelector('.end-date-input');
-
-    startDateInput.addEventListener('change', calculateDuration);
-    endDateInput.addEventListener('change', calculateDuration);
-
-    // Add file size validation and UI update
-    const fileInput = row.querySelector('.attachment-input');
-    const attachmentBtn = row.querySelector('.attachment-btn');
-    const fileName = row.querySelector('.file-name');
+    // Initialize bulk operations
+    initializeBulkOperations();
     
-    fileInput.addEventListener('change', function (e) {
-        const file = e.target.files[0];
-        if (file) {
-            // Update UI
-            attachmentBtn.style.background = 'rgba(46, 204, 113, 0.1)';
-            attachmentBtn.style.borderColor = '#2ecc71';
-            attachmentBtn.style.color = '#2ecc71';
-            fileName.textContent = file.name;
-            fileName.style.color = '#2ecc71';
-        } else {
-            // Reset UI
-            attachmentBtn.style.background = 'rgba(74, 144, 226, 0.1)';
-            attachmentBtn.style.borderColor = '#4a90e2';
-            attachmentBtn.style.color = '#4a90e2';
-            fileName.textContent = 'No file selected';
-            fileName.style.color = '#00d4ff';
+    // Setup audit trail context menu
+    setupAuditTrailContextMenu();
+    
+    // Initialize other existing functionality
+    // (existing initialization code would go here)
+});
+
+// Update bulk operations to work with S.NO checkboxes (no select all)
+function initializeBulkOperations() {
+    // Individual checkbox functionality only
+    document.addEventListener('change', function(e) {
+        if (e.target.matches('.sno-checkbox')) {
+            const row = e.target.closest('tr');
+            if (e.target.checked) {
+                selectedRows.add(row);
+                row.classList.add('selected');
+            } else {
+                selectedRows.delete(row);
+                row.classList.remove('selected');
+            }
+            updateBulkUI();
         }
-        
-        validateFileSize(e.target);
-        updateContractorHyperlink(row);
-        saveState(); // Save state for undo/redo
     });
-
-    // Setup contractor input listener
-    const contractorInput = row.querySelector('.contractor-input');
-    contractorInput.addEventListener('input', function () {
-        updateContractorHyperlink(row);
-        saveState(); // Save state for undo/redo
-    });
-
-    // Add input listeners for undo/redo
-    const inputs = row.querySelectorAll('input[type="text"], input[type="date"], select');
-    inputs.forEach(input => {
-        input.addEventListener('input', function() {
-            saveState(); // Save state for undo/redo
-        });
-        input.addEventListener('change', function() {
-            saveState(); // Save state for undo/redo
-        });
-    });
-
-    updateTotalCount();
-    renumberSerialNumbers(); // Ensure all serial numbers are sequential
-    saveState(); // Save state for undo/redo
+    
+    // Bulk delete button
+    const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
+    if (bulkDeleteBtn) {
+        bulkDeleteBtn.addEventListener('click', bulkDeleteSelected);
+    }
+    
+    // Bulk edit button
+    const bulkEditBtn = document.getElementById('bulkEditBtn');
+    if (bulkEditBtn) {
+        bulkEditBtn.addEventListener('click', toggleBulkEditMode);
+    }
 }
 
 // Calculate duration between start and end date
@@ -1226,7 +1343,12 @@ function loadSyncedData(syncData) {
             
             // Create row HTML with synced data
             row.innerHTML = `
-                <td><input type="text" class="sno-input" value="${snoValue}" readonly></td>
+                <td>
+                    <div class="sno-cell">
+                        <input type="checkbox" class="sno-checkbox" data-row="${snoValue}">
+                        <input type="text" class="sno-input" value="${snoValue}" readonly>
+                    </div>
+                </td>
                 <td><input type="text" class="efile-input" value="${rowData.efile || ''}"></td>
                 <td><input type="text" class="contractor-input" value="${rowData.contractor || ''}"></td>
                 <td><input type="text" class="description-input" value="${rowData.description || ''}"></td>
@@ -1247,14 +1369,12 @@ function loadSyncedData(syncData) {
                 <td><input type="date" class="end-date-input" value="${rowData.endDate || ''}"></td>
                 <td><span class="duration-display">${rowData.duration || '-'}</span></td>
                 <td>
-                    <div class="attachment-container">
-                        <input type="file" class="attachment-input" id="attachment-${rowCounter}" accept=".pdf,.doc,.docx,.xls,.xlsx">
-                        <label for="attachment-${rowCounter}" class="attachment-label">
-                            <i class="fas fa-cloud-upload-alt"></i>
-                            <span class="attachment-text">Choose File</span>
-                        </label>
-                        <span class="file-name">No file selected</span>
-                    </div>
+                    <input type="file" class="attachment-input" id="attachment-${rowCounter}" accept=".pdf,.doc,.docx,.xls,.xlsx" style="display: none;">
+                    <button type="button" class="attachment-btn" onclick="document.getElementById('attachment-${rowCounter}').click()">
+                        <i class="fas fa-paperclip"></i>
+                        <span class="btn-text">Attach</span>
+                    </button>
+                    <span class="file-name">No file selected</span>
                 </td>
                 <td><button class="delete-btn" onclick="deleteRow(this)"><i class="fas fa-trash"></i></button></td>
             `;
@@ -1360,13 +1480,16 @@ async function loadData() {
 
                 // Create contractor cell with both input and link
                 const contractorValue = rowData.contractor || rowData.CONTRACTOR || '';
-                const fileName = rowData.fileName || rowData.file_name || rowData.FILE_NAME || '';
+                const loadedFileName = rowData.fileName || rowData.file_name || rowData.FILE_NAME || '';
                 const fileBase64 = rowData.fileBase64 || rowData.file_base64 || rowData.FILE_BASE64 || '';
-                const hasFile = fileName && fileBase64;
+                const hasFile = loadedFileName && fileBase64;
 
                 row.innerHTML = `
                     <td>
-                        <input type="text" class="sno-input" placeholder="Enter S.No" value="${snoValue}">
+                        <div class="sno-cell">
+                            <input type="checkbox" class="sno-checkbox" data-row="${snoValue}">
+                            <input type="text" class="sno-input" value="${snoValue}" readonly>
+                        </div>
                     </td>
                     <td>
                         <input type="text" class="efile-input" placeholder="Enter E-File" value="${rowData.efile || rowData.EFILE || ''}">
@@ -1403,8 +1526,12 @@ async function loadData() {
                         <span class="duration-display ${isWarning ? 'duration-left' : 'duration-safe'}">${duration || '-'}</span>
                     </td>
                     <td>
-                        <input type="file" class="attachment-input" accept="*/*">
-                        <span class="file-name" style="color: #00d4ff; font-size: 12px;">${fileName}</span>
+                        <input type="file" class="attachment-input" id="attachment-${index}" accept=".pdf,.doc,.docx,.xls,.xlsx" style="display: none;">
+                        <button type="button" class="attachment-btn" onclick="document.getElementById('attachment-${index}').click()">
+                            <i class="fas fa-paperclip"></i>
+                            <span class="btn-text">Attach</span>
+                        </button>
+                        <span class="file-name" style="color: #00d4ff; font-size: 9px;">${loadedFileName || 'No file selected'}</span>
                     </td>
                     <td>
                         <button class="delete-btn" onclick="deleteRow(this)">
@@ -1418,7 +1545,7 @@ async function loadData() {
                 // Restore file if it exists
                 if (hasFile && fileBase64) {
                     try {
-                        const file = base64ToFile(fileBase64, fileName);
+                        const file = base64ToFile(fileBase64, loadedFileName);
                         const fileInput = row.querySelector('.attachment-input');
                         const dataTransfer = new DataTransfer();
                         dataTransfer.items.add(file);
@@ -1455,10 +1582,29 @@ async function loadData() {
                 }
 
                 const fileInput = row.querySelector('.attachment-input');
+                const attachmentBtn = row.querySelector('.attachment-btn');
+                const attachmentFileName = row.querySelector('.file-name');
                 const contractorInput = row.querySelector('.contractor-input');
 
-                if (fileInput) {
+                if (fileInput && attachmentBtn && attachmentFileName) {
                     fileInput.addEventListener('change', function (e) {
+                        const file = e.target.files[0];
+                        if (file) {
+                            // Update UI
+                            attachmentBtn.style.background = 'rgba(46, 204, 113, 0.1)';
+                            attachmentBtn.style.borderColor = '#2ecc71';
+                            attachmentBtn.style.color = '#2ecc71';
+                            attachmentFileName.textContent = file.name;
+                            attachmentFileName.style.color = '#2ecc71';
+                        } else {
+                            // Reset UI
+                            attachmentBtn.style.background = 'rgba(74, 144, 226, 0.1)';
+                            attachmentBtn.style.borderColor = '#4a90e2';
+                            attachmentBtn.style.color = '#4a90e2';
+                            attachmentFileName.textContent = 'No file selected';
+                            attachmentFileName.style.color = '#00d4ff';
+                        }
+                        
                         validateFileSize(e.target);
                         updateContractorHyperlink(row);
                     });
@@ -1701,7 +1847,252 @@ function updateTotalCount() {
     document.getElementById('totalBadge').textContent = `Total: ${rowCount}`;
 }
 
-// ============= EXCEL IMPORT - COMPLETE REWRITE =============
+
+// Update addRow function to include checkbox in S.NO column
+function addRowWithCheckbox() {
+    const tbody = document.getElementById('tableBody');
+    const row = document.createElement('tr');
+    const nextSerialNumber = tbody.querySelectorAll('tr').length + 1;
+    
+    row.innerHTML = `
+        <td>
+            <div class="sno-cell">
+                <input type="checkbox" class="sno-checkbox" data-row="${nextSerialNumber}">
+                <input type="text" class="sno-input" value="${nextSerialNumber}" readonly>
+            </div>
+        </td>
+        <td>
+            <input type="text" class="efile-input" placeholder="Enter E-File">
+        </td>
+        <td>
+            <input type="text" class="contractor-input" placeholder="Enter Contractor">
+            <a href="#" class="contractor-link" style="display: none;" target="_blank"></a>
+        </td>
+        <td>
+            <input type="text" class="description-input" placeholder="Enter Description">
+        </td>
+        <td>
+            <input type="text" class="value-input" placeholder="Enter Value">
+        </td>
+        <td>
+            <select class="gst-select">
+                <option value="">Select GST</option>
+                <option value="0%">0%</option>
+                <option value="5%">5%</option>
+                <option value="12%">12%</option>
+                <option value="18%">18%</option>
+                <option value="28%">28%</option>
+                <option value="with gst">With GST</option>
+                <option value="without gst">Without GST</option>
+            </select>
+        </td>
+        <td>
+            <input type="date" class="start-date-input">
+        </td>
+        <td>
+            <input type="date" class="end-date-input">
+        </td>
+        <td class="duration-cell">
+            <span class="duration-display">-</span>
+        </td>
+        <td>
+            <input type="file" class="attachment-input" id="attachment-${nextSerialNumber}" accept=".pdf,.doc,.docx,.xls,.xlsx" style="display: none;">
+            <button type="button" class="attachment-btn" onclick="document.getElementById('attachment-${nextSerialNumber}').click()">
+                <i class="fas fa-paperclip"></i>
+                <span class="btn-text">Attach File</span>
+            </button>
+            <span class="file-name">No file selected</span>
+        </td>
+        <td>
+            <button class="delete-btn" onclick="deleteRow(this)">
+                <i class="fas fa-trash"></i>
+            </button>
+        </td>
+    `;
+    
+    tbody.appendChild(row);
+    
+    // Setup event listeners for the new row
+    setupRowEventListeners(row);
+    
+    // Add audit entry for new row
+    addAuditEntry('create', nextSerialNumber, 'New row created', getCurrentUser());
+    
+    updateTotalCount();
+    saveState();
+    return row;
+}
+
+// ============= TABLE FILTERS - CHECKBOX ONLY =============
+
+// Initialize table filters dropdown
+function initializeTableFilters() {
+    const filterDropdownBtn = document.getElementById('filterDropdownBtn');
+    const filterDropdownMenu = document.getElementById('filterDropdownMenu');
+    const applyFiltersBtn = document.getElementById('applyFiltersBtn');
+    const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+    
+    // Toggle dropdown
+    if (filterDropdownBtn) {
+        filterDropdownBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const isOpen = filterDropdownMenu.classList.contains('show');
+            
+            // Close all other dropdowns
+            document.querySelectorAll('.filter-dropdown-menu').forEach(menu => {
+                menu.classList.remove('show');
+            });
+            
+            if (!isOpen) {
+                filterDropdownMenu.classList.add('show');
+                filterDropdownBtn.classList.add('active');
+            } else {
+                filterDropdownBtn.classList.remove('active');
+            }
+        });
+    }
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.filter-dropdown-container')) {
+            filterDropdownMenu.classList.remove('show');
+            filterDropdownBtn.classList.remove('active');
+        }
+    });
+    
+    // Apply filters button
+    if (applyFiltersBtn) {
+        applyFiltersBtn.addEventListener('click', function() {
+            applyFilters();
+            filterDropdownMenu.classList.remove('show');
+            filterDropdownBtn.classList.remove('active');
+        });
+    }
+    
+    // Clear filters button
+    if (clearFiltersBtn) {
+        clearFiltersBtn.addEventListener('click', function() {
+            clearAllFilters();
+            filterDropdownMenu.classList.remove('show');
+            filterDropdownBtn.classList.remove('active');
+        });
+    }
+}
+
+// Apply filters to table rows (checkbox only)
+function applyFilters() {
+    const filters = getActiveFilters();
+    const tbody = document.getElementById('tableBody');
+    const rows = tbody.querySelectorAll('tr');
+    
+    rows.forEach(row => {
+        let shouldShow = true;
+        
+        // If no filters selected, show all rows
+        if (filters.length === 0) {
+            row.style.display = '';
+            return;
+        }
+        
+        // Check each filter - show row if ANY filter matches (OR logic)
+        shouldShow = filters.some(column => {
+            const cellValue = getCellValue(row, column);
+            return cellValue && cellValue.trim() !== '';
+        });
+        
+        // Show/hide row
+        row.style.display = shouldShow ? '' : 'none';
+    });
+    
+    // Update total count to show only visible rows
+    updateVisibleRowCount();
+    
+    // Show filter status
+    if (filters.length > 0) {
+        showNotification(`${filters.length} column(s) filtered`, 'success');
+    }
+}
+
+// Get active filters (checkbox only)
+function getActiveFilters() {
+    const filters = [];
+    
+    document.querySelectorAll('.filter-checkbox:checked').forEach(checkbox => {
+        const column = checkbox.dataset.column;
+        if (column) {
+            filters.push(column);
+        }
+    });
+    
+    return filters;
+}
+
+// Clear all filters (checkbox only)
+function clearAllFilters() {
+    // Uncheck all checkboxes
+    document.querySelectorAll('.filter-checkbox').forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    
+    // Show all rows
+    const tbody = document.getElementById('tableBody');
+    const rows = tbody.querySelectorAll('tr');
+    rows.forEach(row => {
+        row.style.display = '';
+    });
+    
+    updateTotalCount();
+    showNotification('All filters cleared', 'info');
+}
+
+// Show notification (helper function)
+function showNotification(message, type = 'info') {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `filter-notification ${type}`;
+    notification.textContent = message;
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${type === 'success' ? 'linear-gradient(135deg, #2ecc71, #27ae60)' : 'linear-gradient(135deg, #6e8efb, #a777e3)'};
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 600;
+        z-index: 10000;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        animation: slideIn 0.3s ease;
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => {
+            notification.remove();
+        }, 300);
+    }, 3000);
+}
+
+// Add animation styles
+const animationStyles = `
+    @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes slideOut {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(100%); opacity: 0; }
+    }
+`;
+
+// Add styles to head
+const styleSheet = document.createElement('style');
+styleSheet.textContent = animationStyles;
+document.head.appendChild(styleSheet);
 
 // Import Excel using new backend API
 async function importFromExcel() {
@@ -1826,7 +2217,10 @@ function addContractorRow(data) {
     
     row.innerHTML = `
         <td>
-            <input type="text" class="sno-input" value="${data.sno || nextSerialNumber}" readonly>
+            <div class="sno-cell">
+                <input type="checkbox" class="sno-checkbox" data-row="${data.sno || nextSerialNumber}">
+                <input type="text" class="sno-input" value="${data.sno || nextSerialNumber}" readonly>
+            </div>
         </td>
         <td>
             <input type="text" class="efile-input" value="${data.efile || ''}">
@@ -2194,7 +2588,10 @@ function restoreState(stateString) {
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>
-                <input type="text" class="sno-input" placeholder="Enter S.No" value="${rowData.sno}">
+                <div class="sno-cell">
+                    <input type="checkbox" class="sno-checkbox" data-row="${rowData.sno}">
+                    <input type="text" class="sno-input" value="${rowData.sno}" readonly>
+                </div>
             </td>
             <td>
                 <input type="text" class="efile-input" placeholder="Enter E-File" value="${rowData.efile}">
@@ -2228,8 +2625,12 @@ function restoreState(stateString) {
                 <span class="duration-display"></span>
             </td>
             <td>
-                <input type="file" class="attachment-input" accept=".pdf,.doc,.docx,.xls,.xlsx">
-                ${rowData.attachment ? `<span class="attachment-name">${rowData.attachment}</span>` : ''}
+                <input type="file" class="attachment-input" id="attachment-${index}" accept=".pdf,.doc,.docx,.xls,.xlsx" style="display: none;">
+                <button type="button" class="attachment-btn" onclick="document.getElementById('attachment-${index}').click()">
+                    <i class="fas fa-paperclip"></i>
+                    <span class="btn-text">Attach</span>
+                </button>
+                <span class="file-name">${rowData.attachment || 'No file selected'}</span>
             </td>
             <td>
                 <button class="delete-btn" onclick="deleteRow(this)">

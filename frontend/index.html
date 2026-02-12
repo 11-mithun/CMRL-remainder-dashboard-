@@ -154,6 +154,84 @@
                         <span class="total-badge" id="totalBadge">Total: 0</span>
                     </div>
 
+                    <div class="table-filters">
+                        <div class="filter-dropdown-container">
+                            <button class="filter-dropdown-btn" id="filterDropdownBtn">
+                                <i class="fas fa-filter"></i>
+                                <span>Filters</span>
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                            <div class="filter-dropdown-menu" id="filterDropdownMenu">
+                                <div class="filter-section">
+                                    <h4>Filter Columns</h4>
+                                    <div class="filter-item">
+                                        <input type="checkbox" class="filter-checkbox" id="filter-sno" data-column="sno">
+                                        <label for="filter-sno">S.NO</label>
+                                    </div>
+                                    <div class="filter-item">
+                                        <input type="checkbox" class="filter-checkbox" id="filter-efile" data-column="efile">
+                                        <label for="filter-efile">E-FILE</label>
+                                    </div>
+                                    <div class="filter-item">
+                                        <input type="checkbox" class="filter-checkbox" id="filter-contractor" data-column="contractor">
+                                        <label for="filter-contractor">CONTRACTOR</label>
+                                    </div>
+                                    <div class="filter-item">
+                                        <input type="checkbox" class="filter-checkbox" id="filter-description" data-column="description">
+                                        <label for="filter-description">DESCRIPTION</label>
+                                    </div>
+                                    <div class="filter-item">
+                                        <input type="checkbox" class="filter-checkbox" id="filter-value" data-column="value">
+                                        <label for="filter-value">VALUE</label>
+                                    </div>
+                                    <div class="filter-item">
+                                        <input type="checkbox" class="filter-checkbox" id="filter-gst" data-column="gst">
+                                        <label for="filter-gst">GST</label>
+                                    </div>
+                                    <div class="filter-item">
+                                        <input type="checkbox" class="filter-checkbox" id="filter-startDate" data-column="startDate">
+                                        <label for="filter-startDate">START DATE</label>
+                                    </div>
+                                    <div class="filter-item">
+                                        <input type="checkbox" class="filter-checkbox" id="filter-endDate" data-column="endDate">
+                                        <label for="filter-endDate">END DATE</label>
+                                    </div>
+                                    <div class="filter-item">
+                                        <input type="checkbox" class="filter-checkbox" id="filter-duration" data-column="duration">
+                                        <label for="filter-duration">DURATION</label>
+                                    </div>
+                                    <div class="filter-item">
+                                        <input type="checkbox" class="filter-checkbox" id="filter-attachment" data-column="attachment">
+                                        <label for="filter-attachment">ATTACHMENT</label>
+                                    </div>
+                                </div>
+                                
+                                <div class="filter-actions">
+                                    <button class="apply-filters-btn" id="applyFiltersBtn">
+                                        <i class="fas fa-check"></i> Apply Filters
+                                    </button>
+                                    <button class="clear-filters-btn" id="clearFiltersBtn">
+                                        <i class="fas fa-times"></i> Clear All
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bulk-operations">
+                        <div class="bulk-actions">
+                            <span class="selected-count" id="selectedCount" style="display: none;">0 selected</span>
+                            <button class="bulk-btn edit" id="bulkEditBtn" style="display: none;">
+                                <i class="fas fa-edit"></i>
+                                Edit Selected
+                            </button>
+                            <button class="bulk-btn delete" id="bulkDeleteBtn" style="display: none;">
+                                <i class="fas fa-trash"></i>
+                                Delete Selected
+                            </button>
+                        </div>
+                    </div>
+
                     <div class="table-container">
                         <table class="data-table" id="dataTable">
                             <thead>
@@ -275,6 +353,31 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- Audit Trail Context Menu -->
+    <div class="audit-menu" id="auditMenu">
+        <div class="audit-menu-header">Audit Trail</div>
+        <div class="audit-menu-item">
+            <div>Field: <span class="audit-value" id="auditField">-</span></div>
+            <div>Value: <span class="audit-value" id="auditValue">-</span></div>
+            <div class="audit-time" id="auditTime">-</div>
+        </div>
+        <div class="audit-menu-divider"></div>
+        <div class="audit-menu-item">
+            <div>Last Modified: <span class="audit-value" id="auditUser">-</span></div>
+            <div class="audit-time" id="auditModified">-</div>
+        </div>
+        <div class="audit-menu-divider"></div>
+        <div class="audit-menu-item">
+            <div>Original Value: <span class="audit-value" id="auditOriginal">-</span></div>
+            <div class="audit-time" id="auditOriginalTime">-</div>
+        </div>
+    </div>
+
+    <!-- Edit Mode Indicator -->
+    <div class="edit-mode-indicator" id="editModeIndicator">
+        <i class="fas fa-edit"></i> Edit Mode Active
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>

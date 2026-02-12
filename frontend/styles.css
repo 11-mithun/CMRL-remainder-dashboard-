@@ -1429,104 +1429,466 @@ body::after {
 }
 
 .data-table th {
-    background: transparent;
-    padding: 0 12px 5px 12px;
+    background: linear-gradient(135deg, rgba(123, 44, 191, 0.8) 0%, rgba(91, 33, 182, 0.9) 100%);
+    padding: 12px 8px;
     font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 1px;
-    color: rgba(255, 255, 255, 0.4);
+    letter-spacing: 1.2px;
+    color: #ffffff;
     text-align: center;
-    border-bottom: none;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.3);
     white-space: nowrap;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(123, 44, 191, 0.4);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* TABLE FILTERS - DROPDOWN DESIGN */
+.table-filters {
+    padding: 15px 25px;
+    background: rgba(255, 255, 255, 0.02);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.filter-dropdown-container {
+    position: relative;
+    display: inline-block;
+}
+
+.filter-dropdown-btn {
+    background: linear-gradient(135deg, #6e8efb, #a777e3);
+    border: none;
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 15px rgba(110, 142, 251, 0.3);
+}
+
+.filter-dropdown-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(110, 142, 251, 0.4);
+}
+
+.filter-dropdown-btn i:first-child {
+    font-size: 14px;
+}
+
+.filter-dropdown-btn i:last-child {
+    font-size: 12px;
+    transition: transform 0.3s ease;
+}
+
+.filter-dropdown-btn.active i:last-child {
+transform: rotate(180deg);
+}
+
+.filter-dropdown-menu {
+position: absolute;
+top: 100%;
+left: 0;
+background: rgba(30, 30, 46, 0.95);
+border: 2px solid rgba(110, 142, 251, 0.6);
+border-radius: 12px;
+padding: 15px;
+min-width: 250px;
+max-width: 300px;
+max-height: 400px;
+overflow-y: auto;
+z-index: 1000;
+backdrop-filter: blur(10px);
+box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+display: none;
+margin-top: 8px;
+}
+
+.filter-dropdown-menu.show {
+display: block;
+}
+
+.filter-section {
+margin-bottom: 15px;
+}
+
+.filter-section:last-child {
+margin-bottom: 0;
+}
+
+.filter-section h4 {
+color: #6e8efb;
+font-size: 13px;
+font-weight: 700;
+text-transform: uppercase;
+letter-spacing: 1.5px;
+margin: 0 0 10px 0;
+padding-bottom: 6px;
+border-bottom: 2px solid rgba(110, 142, 251, 0.4);
+text-shadow: 0 0 10px rgba(110, 142, 251, 0.5);
+}
+
+.filter-item {
+display: flex;
+align-items: center;
+gap: 10px;
+margin-bottom: 8px;
+padding: 8px 10px;
+border: 1px solid rgba(110, 142, 251, 0.3);
+border-radius: 6px;
+transition: all 0.2s ease;
+background: rgba(255, 255, 255, 0.02);
+}
+
+.filter-item:hover {
+background: rgba(110, 142, 251, 0.1);
+border-color: rgba(110, 142, 251, 0.6);
+transform: translateY(-1px);
+}
+
+.filter-checkbox {
+width: 16px;
+height: 16px;
+accent-color: #6e8efb;
+cursor: pointer;
+}
+
+.filter-item label {
+color: #ffffff;
+font-size: 11px;
+font-weight: 600;
+margin: 0;
+cursor: pointer;
+text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+}
+
+.filter-actions {
+display: flex;
+gap: 10px;
+margin-top: 15px;
+padding-top: 12px;
+border-top: 2px solid rgba(110, 142, 251, 0.4);
+}
+
+.apply-filters-btn {
+background: linear-gradient(135deg, #2ecc71, #27ae60);
+border: 2px solid #27ae60;
+color: #ffffff;
+padding: 8px 16px;
+border-radius: 6px;
+font-size: 11px;
+font-weight: 700;
+cursor: pointer;
+transition: all 0.2s ease;
+display: flex;
+align-items: center;
+gap: 6px;
+flex: 1;
+text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+box-shadow: 0 4px 15px rgba(46, 204, 113, 0.3);
+}
+
+.apply-filters-btn:hover {
+background: linear-gradient(135deg, #27ae60, #2ecc71);
+transform: translateY(-2px);
+box-shadow: 0 6px 20px rgba(46, 204, 113, 0.4);
+}
+
+.clear-filters-btn {
+background: linear-gradient(135deg, #e74c3c, #c0392b);
+border: 2px solid #c0392b;
+color: #ffffff;
+padding: 8px 16px;
+border-radius: 6px;
+font-size: 11px;
+font-weight: 700;
+cursor: pointer;
+transition: all 0.2s ease;
+display: flex;
+align-items: center;
+gap: 6px;
+flex: 1;
+text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+}
+
+.clear-filters-btn:hover {
+background: linear-gradient(135deg, #c0392b, #e74c3c);
+transform: translateY(-2px);
+box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
+}
+
+/* S.NO COLUMN WITH CHECKBOX */
+.data-table th:nth-child(1),
+.data-table td:nth-child(1) {
+width: 60px;
+text-align: center;
+    width: 60px;
+    text-align: center;
+}
+
+.sno-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.sno-checkbox {
+    width: 16px;
+    height: 16px;
+    accent-color: #7b2cbf;
+    cursor: pointer;
+}
+
+.sno-input {
+    width: 35px;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.08) !important;
+    font-weight: 700;
 }
 
 /* Specific Column Widths - NEW ORDER */
-.data-table th:nth-child(1),
-.data-table td:nth-child(1) {
-    width: 50px;
-    text-align: center;
-}
-
-/* E-FILE */
 .data-table th:nth-child(2),
 .data-table td:nth-child(2) {
     width: 90px;
 }
 
-/* CONTRACTOR */
 .data-table th:nth-child(3),
 .data-table td:nth-child(3) {
     width: 180px;
 }
 
-/* DESCRIPTION */
 .data-table th:nth-child(4),
 .data-table td:nth-child(4) {
     width: 180px;
 }
 
-/* DESCRIPTION */
 .data-table th:nth-child(5),
 .data-table td:nth-child(5) {
     width: 130px;
 }
 
-/* VALUE */
 .data-table th:nth-child(6),
 .data-table td:nth-child(6) {
     width: 200px;
 }
 
-/* GST */
 .data-table th:nth-child(7),
 .data-table td:nth-child(7) {
     width: 160px;
 }
 
-/* START DATE */
 .data-table th:nth-child(8),
 .data-table td:nth-child(8) {
     width: 110px;
 }
 
-/* END DATE */
 .data-table th:nth-child(9),
 .data-table td:nth-child(9) {
     width: 110px;
-    text-align: center;
 }
 
-/* Bill Tracker Date Columns */
-.data-table th:nth-child(4),  /* APPROVED DATE */
-.data-table td:nth-child(4),
-.data-table th:nth-child(6),  /* BILL DATE */
-.data-table td:nth-child(6),
-.data-table th:nth-child(7),  /* BILL DUE DATE */
-.data-table td:nth-child(7),
-.data-table th:nth-child(8),  /* BILL PAID DATE */
-.data-table td:nth-child(8) {
-    width: 110px;
-}
-
-/* EPBG Date Column */
-.data-table th:nth-child(5),  /* BG DATE */
-.data-table td:nth-child(5) {
-    width: 110px;
-}
-
-/* DURATION */
 .data-table th:nth-child(10),
 .data-table td:nth-child(10) {
     width: 180px;
 }
 
-/* ATTACHMENT - Simple Visible Button */
 .data-table th:nth-child(11),
 .data-table td:nth-child(11) {
-    width: 120px;
+    width: 80px;
     text-align: center;
-    padding: 8px 4px !important;
+    padding: 4px 2px !important;
+    vertical-align: middle;
+}
+
+/* BULK OPERATIONS */
+.bulk-operations {
+    padding: 15px 25px;
+    background: rgba(255, 255, 255, 0.02);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 15px;
+}
+
+.bulk-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.bulk-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.bulk-btn:hover {
+    background: rgba(255, 255, 255, 0.18);
+    transform: translateY(-1px);
+}
+
+.bulk-btn.delete {
+    background: rgba(255, 107, 107, 0.1);
+    border-color: rgba(255, 107, 107, 0.3);
+    color: #ff6b6b;
+}
+
+.bulk-btn.delete:hover {
+    background: rgba(255, 107, 107, 0.2);
+    border-color: #ff6b6b;
+}
+
+.bulk-btn.edit {
+    background: rgba(74, 144, 226, 0.1);
+    border-color: rgba(74, 144, 226, 0.3);
+    color: #4a90e2;
+}
+
+.bulk-btn.edit:hover {
+    background: rgba(74, 144, 226, 0.2);
+    border-color: #4a90e2;
+}
+
+.selected-count {
+    background: linear-gradient(135deg, #6e8efb, #a777e3);
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #fff;
+}
+
+/* AUDIT TRAIL CONTEXT MENU */
+.audit-menu {
+    position: fixed;
+    background: rgba(30, 30, 46, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    padding: 8px 0;
+    min-width: 250px;
+    z-index: 10000;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    display: none;
+}
+
+.audit-menu.show {
+    display: block;
+}
+
+.audit-menu-item {
+    padding: 10px 16px;
+    color: #fff;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.audit-menu-item:last-child {
+    border-bottom: none;
+}
+
+.audit-menu-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.audit-menu-header {
+    padding: 8px 16px;
+    background: rgba(123, 44, 191, 0.2);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #fff;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.audit-menu-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.1);
+    margin: 4px 0;
+}
+
+.audit-value {
+    font-weight: 600;
+    color: #4a90e2;
+}
+
+.audit-time {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.6);
+    margin-top: 2px;
+}
+
+/* EDIT MODE INDICATOR */
+.edit-mode-indicator {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: linear-gradient(135deg, #f39c12, #e67e22);
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    z-index: 1000;
+    box-shadow: 0 4px 15px rgba(243, 156, 18, 0.4);
+    display: none;
+    animation: pulse 2s infinite;
+}
+
+.edit-mode-indicator.show {
+    display: block;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+/* ROW HIGHLIGHT FOR EDIT MODE */
+.data-table tr.edit-mode {
+    background: rgba(243, 156, 18, 0.1) !important;
+    border: 2px solid #f39c12;
+    border-radius: 8px;
+}
+
+.data-table tr.edit-mode td {
+    background: transparent !important;
+}
+
+.data-table tr.edit-mode input,
+.data-table tr.edit-mode select {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border-color: #f39c12 !important;
+    box-shadow: 0 0 10px rgba(243, 156, 18, 0.3) !important;
+}
+.data-table th:nth-child(11),
+.data-table td:nth-child(11) {
+    width: 80px;
+    text-align: center;
+    padding: 4px 2px !important;
     vertical-align: middle;
 }
 
@@ -1534,37 +1896,37 @@ body::after {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 4px;
+    gap: 1px;
     width: 100%;
-    height: 36px;
+    height: 18px;
     background: rgba(74, 144, 226, 0.1);
     border: 1px solid #4a90e2;
-    border-radius: 6px;
+    border-radius: 3px;
     color: #4a90e2;
-    font-size: 10px;
-    font-weight: 500;
+    font-size: 7px;
+    font-weight: 300;
     cursor: pointer;
     transition: all 0.2s ease;
-    margin-bottom: 4px;
-    padding: 0 8px;
+    margin-bottom: 1px;
+    padding: 0 2px;
 }
 
 .attachment-btn:hover {
     background: rgba(74, 144, 226, 0.2);
     border-color: #357abd;
     transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(74, 144, 226, 0.3);
+    box-shadow: 0 1px 4px rgba(74, 144, 226, 0.3);
 }
 
 .attachment-btn i {
-    font-size: 12px;
+    font-size: 8px;
 }
 
 .btn-text {
-    font-size: 9px;
+    font-size: 6px;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.2px;
 }
 
 .file-name {
@@ -1578,23 +1940,6 @@ body::after {
     max-width: 100%;
     font-weight: 500;
     line-height: 1.2;
-}
-
-/* Attachment container with file */
-.attachment-container.has-file .attachment-label {
-    border-color: #2ecc71;
-    background: rgba(46, 204, 113, 0.05);
-    color: #2ecc71;
-}
-
-.attachment-container.has-file .attachment-label i {
-    color: #2ecc71;
-}
-
-.attachment-container.has-file .attachment-label:hover {
-    border-color: #27ae60;
-    background: rgba(46, 204, 113, 0.1);
-    box-shadow: 0 4px 12px rgba(46, 204, 113, 0.2);
 }
 
 /* Date picker styling - PROPER ICON VISIBILITY */
