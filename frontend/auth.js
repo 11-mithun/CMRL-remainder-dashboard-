@@ -53,9 +53,14 @@ const Auth = {
     applyRBAC(user) {
         if (!user) return;
 
-        // Enable edit mode for all users
-        document.body.classList.remove('read-only');
-        console.log('RBAC: Edit mode active');
+        // Apply role-based access control
+        if (user.role === 'viewer') {
+            document.body.classList.add('read-only');
+            console.log('RBAC: Read-only mode active');
+        } else if (user.role === 'admin' || user.role === 'staff') {
+            document.body.classList.remove('read-only');
+            console.log('RBAC: Edit mode active');
+        }
     },
 
     applyTheme(user) {

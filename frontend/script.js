@@ -10,6 +10,16 @@ const MAX_HISTORY_SIZE = 50;
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function () {
+    // Add refresh warning
+    window.addEventListener('beforeunload', function (e) {
+        const hasUnsavedChanges = document.getElementById('tableBody').children.length > 0;
+        if (hasUnsavedChanges) {
+            e.preventDefault();
+            e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+            return e.returnValue;
+        }
+    });
+    
     loadData();
     setupEventListeners();
     updateTotalCount();
@@ -22,11 +32,33 @@ document.addEventListener('DOMContentLoaded', function () {
         updateAllDurations(); // Update all durations to show current days left
         startRealTimeDurationUpdates(); // Start real-time updates
     }, 500);
+    
+    // Listen for cross-page data sync events
+    window.addEventListener('storage', function(e) {
+        if (e.key === 'crossPageDataSync' && e.newValue) {
+            try {
+                const syncData = JSON.parse(e.newValue);
+                console.log('Received cross-page data sync');
+                // Apply synced data if current page is empty
+                if (document.getElementById('tableBody').children.length === 0) {
+                    loadSyncedData(syncData);
+                }
+            } catch (error) {
+                console.error('Error parsing cross-page sync data:', error);
+            }
+        }
+    });
+    
+    // Listen for custom data sync events
+    window.addEventListener('dataSync', function(e) {
+        console.log('Data sync event received');
+    });
 });
 
 // Setup event listeners
 function setupEventListeners() {
     document.getElementById('addRowBtn').addEventListener('click', addRow);
+    document.getElementById('importBtn').addEventListener('click', importFromExcel);
     document.getElementById('saveBtn').addEventListener('click', saveData);
     document.getElementById('refreshBtn').addEventListener('click', refreshPage);
     document.getElementById('printBtn').addEventListener('click', printTable);
@@ -197,6 +229,11 @@ function addRow() {
         <td>
             <select class="gst-select">
                 <option value="">Select GST</option>
+                <option value="0%">0%</option>
+                <option value="5%">5%</option>
+                <option value="12%">12%</option>
+                <option value="18%">18%</option>
+                <option value="28%">28%</option>
                 <option value="with gst">With GST</option>
                 <option value="without gst">Without GST</option>
             </select>
@@ -211,8 +248,12 @@ function addRow() {
             <span class="duration-display">-</span>
         </td>
         <td>
-            <input type="file" class="attachment-input" accept="*/*">
-            <span class="file-name"></span>
+            <input type="file" class="attachment-input" id="attachment-${nextSerialNumber}" accept=".pdf,.doc,.docx,.xls,.xlsx" style="display: none;">
+            <button type="button" class="attachment-btn" onclick="document.getElementById('attachment-${nextSerialNumber}').click()">
+                <i class="fas fa-paperclip"></i>
+                <span class="btn-text">Attach File</span>
+            </button>
+            <span class="file-name">No file selected</span>
         </td>
         <td>
             <button class="delete-btn" onclick="deleteRow(this)">
@@ -230,9 +271,29 @@ function addRow() {
     startDateInput.addEventListener('change', calculateDuration);
     endDateInput.addEventListener('change', calculateDuration);
 
-    // Add file size validation
+    // Add file size validation and UI update
     const fileInput = row.querySelector('.attachment-input');
+    const attachmentBtn = row.querySelector('.attachment-btn');
+    const fileName = row.querySelector('.file-name');
+    
     fileInput.addEventListener('change', function (e) {
+        const file = e.target.files[0];
+        if (file) {
+            // Update UI
+            attachmentBtn.style.background = 'rgba(46, 204, 113, 0.1)';
+            attachmentBtn.style.borderColor = '#2ecc71';
+            attachmentBtn.style.color = '#2ecc71';
+            fileName.textContent = file.name;
+            fileName.style.color = '#2ecc71';
+        } else {
+            // Reset UI
+            attachmentBtn.style.background = 'rgba(74, 144, 226, 0.1)';
+            attachmentBtn.style.borderColor = '#4a90e2';
+            attachmentBtn.style.color = '#4a90e2';
+            fileName.textContent = 'No file selected';
+            fileName.style.color = '#00d4ff';
+        }
+        
         validateFileSize(e.target);
         updateContractorHyperlink(row);
         saveState(); // Save state for undo/redo
@@ -1040,6 +1101,9 @@ async function saveData() {
         const endDate = row.querySelector('.end-date-input')?.value || '';
         const attachmentInput = row.querySelector('.attachment-input');
         const file = attachmentInput?.files[0];
+        
+        // DEBUG: Log data collection
+        console.log(`Save Row ${index}: Value="${value}", GST="${gst}", Description="${description}"`);
 
         // Update contractor hyperlink if needed
         updateContractorHyperlink(row);
@@ -1050,8 +1114,8 @@ async function saveData() {
             efile,
             contractor,
             description,
-            gst,
-            value,
+            value,  // Value before GST to match backend
+            gst,    // GST after Value to match backend
             startDate,
             endDate,
             duration: row.querySelector('.duration-display')?.textContent || '-',
@@ -1114,8 +1178,8 @@ async function saveDataToStorage() {
             efile,
             contractor,
             description,
-            gst,
-            value,
+            value,      // Value before GST to match backend
+            gst,        // GST after Value to match backend
             startDate,
             endDate,
             duration,
@@ -1138,11 +1202,112 @@ async function saveDataToStorage() {
         console.error('Failed to save to API, using localStorage:', error);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
     }
+    
+    // Mark session as having saved data
+    sessionStorage.setItem('dashboardSessionData', 'true');
+    
+    // Sync data across pages using localStorage
+    localStorage.setItem('crossPageDataSync', JSON.stringify(dataToSave));
+    
+    // Trigger storage event for other pages
+    window.dispatchEvent(new CustomEvent('dataSync', { detail: dataToSave }));
+}
+
+// Load synced data from other pages
+function loadSyncedData(syncData) {
+    try {
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = '';
+        
+        syncData.forEach((rowData, index) => {
+            const row = document.createElement('tr');
+            const snoValue = rowData.sno || (index + 1);
+            rowCounter = Math.max(rowCounter, parseInt(snoValue) || index + 1);
+            
+            // Create row HTML with synced data
+            row.innerHTML = `
+                <td><input type="text" class="sno-input" value="${snoValue}" readonly></td>
+                <td><input type="text" class="efile-input" value="${rowData.efile || ''}"></td>
+                <td><input type="text" class="contractor-input" value="${rowData.contractor || ''}"></td>
+                <td><input type="text" class="description-input" value="${rowData.description || ''}"></td>
+                <td><input type="text" class="value-input" value="${rowData.value || ''}"></td>
+                <td>
+                    <select class="gst-select">
+                        <option value="">Select GST</option>
+                        <option value="0%" ${rowData.gst === '0%' ? 'selected' : ''}>0%</option>
+                        <option value="5%" ${rowData.gst === '5%' ? 'selected' : ''}>5%</option>
+                        <option value="12%" ${rowData.gst === '12%' ? 'selected' : ''}>12%</option>
+                        <option value="18%" ${rowData.gst === '18%' ? 'selected' : ''}>18%</option>
+                        <option value="28%" ${rowData.gst === '28%' ? 'selected' : ''}>28%</option>
+                        <option value="with gst" ${rowData.gst === 'with gst' ? 'selected' : ''}>With GST</option>
+                        <option value="without gst" ${rowData.gst === 'without gst' ? 'selected' : ''}>Without GST</option>
+                    </select>
+                </td>
+                <td><input type="date" class="start-date-input" value="${rowData.startDate || ''}"></td>
+                <td><input type="date" class="end-date-input" value="${rowData.endDate || ''}"></td>
+                <td><span class="duration-display">${rowData.duration || '-'}</span></td>
+                <td>
+                    <div class="attachment-container">
+                        <input type="file" class="attachment-input" id="attachment-${rowCounter}" accept=".pdf,.doc,.docx,.xls,.xlsx">
+                        <label for="attachment-${rowCounter}" class="attachment-label">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <span class="attachment-text">Choose File</span>
+                        </label>
+                        <span class="file-name">No file selected</span>
+                    </div>
+                </td>
+                <td><button class="delete-btn" onclick="deleteRow(this)"><i class="fas fa-trash"></i></button></td>
+            `;
+            
+            tbody.appendChild(row);
+            
+            // Setup event listeners for the new row
+            setupRowEventListeners(row);
+            
+            // Calculate duration if dates are available
+            if (rowData.startDate && rowData.endDate) {
+                calculateDuration({ target: row.querySelector('.end-date-input') });
+            }
+        });
+        
+        updateTotalCount();
+        console.log('Synced data loaded successfully');
+    } catch (error) {
+        console.error('Error loading synced data:', error);
+    }
+}
+
+// Setup event listeners for a row
+function setupRowEventListeners(row) {
+    // Setup contractor input listener
+    const contractorInput = row.querySelector('.contractor-input');
+    contractorInput.addEventListener('input', function () {
+        updateContractorHyperlink(row);
+        saveState();
+    });
+    
+    // Add input listeners for undo/redo
+    const inputs = row.querySelectorAll('input[type="text"], input[type="date"], select');
+    inputs.forEach(input => {
+        input.addEventListener('input', function() {
+            saveState();
+        });
+        input.addEventListener('change', function() {
+            saveState();
+        });
+    });
 }
 
 // Load data from API (with localStorage fallback)
 async function loadData() {
     let data = [];
+
+    // Only load data if it was explicitly saved in this session
+    const sessionData = sessionStorage.getItem('dashboardSessionData');
+    if (!sessionData) {
+        console.log('No session data found - starting fresh');
+        return;
+    }
 
     // Try to load from API first
     try {
@@ -1219,6 +1384,11 @@ async function loadData() {
                     <td>
                         <select class="gst-select">
                             <option value="">Select GST</option>
+                            <option value="0%" ${rowData.gst === '0%' ? 'selected' : ''}>0%</option>
+                            <option value="5%" ${rowData.gst === '5%' ? 'selected' : ''}>5%</option>
+                            <option value="12%" ${rowData.gst === '12%' ? 'selected' : ''}>12%</option>
+                            <option value="18%" ${rowData.gst === '18%' ? 'selected' : ''}>18%</option>
+                            <option value="28%" ${rowData.gst === '28%' ? 'selected' : ''}>28%</option>
                             <option value="with gst" ${rowData.gst === 'with gst' ? 'selected' : ''}>With GST</option>
                             <option value="without gst" ${rowData.gst === 'without gst' ? 'selected' : ''}>Without GST</option>
                         </select>
@@ -1460,8 +1630,8 @@ function exportToExcel() {
         'E-File',
         'Contractor',
         'Description',
-        'GST',
         'Value',
+        'GST',
         'Start Date',
         'End Date',
         'Duration (Days)',
@@ -1488,8 +1658,8 @@ function exportToExcel() {
             efile,
             contractor,
             description,
-            gst,
             value,
+            gst,
             startDate,
             endDate,
             duration,
@@ -1529,6 +1699,251 @@ function updateTotalCount() {
     const tbody = document.getElementById('tableBody');
     const rowCount = tbody.querySelectorAll('tr').length;
     document.getElementById('totalBadge').textContent = `Total: ${rowCount}`;
+}
+
+// ============= EXCEL IMPORT - COMPLETE REWRITE =============
+
+// Import Excel using new backend API
+async function importFromExcel() {
+    try {
+        // Create file input
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.xlsx,.xls';
+        fileInput.style.display = 'none';
+        
+        fileInput.addEventListener('change', async function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            // Show loading indicator
+            showLoadingIndicator('Processing Excel file...');
+            
+            try {
+                // Determine current page type
+                const pageType = getCurrentPageType();
+                
+                // Create FormData for file upload
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('page_type', pageType);
+                
+                // Upload to backend for processing
+                const response = await fetch('/api/excel-upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.error || 'Upload failed');
+                }
+                
+                if (result.success) {
+                    console.log('Excel processed successfully:', result);
+                    console.log('Columns found:', result.columns);
+                    console.log('Rows processed:', result.row_count);
+                    
+                    // Import processed data to table
+                    await importProcessedData(result.data, pageType);
+                    
+                    hideLoadingIndicator();
+                    alert(`Excel file imported successfully!\nColumns: ${result.columns.join(', ')}\nRows: ${result.row_count}`);
+                } else {
+                    throw new Error('Processing failed');
+                }
+                
+            } catch (error) {
+                console.error('Error importing Excel:', error);
+                hideLoadingIndicator();
+                alert(`Error importing Excel file: ${error.message}`);
+            }
+            
+            // Clean up
+            document.body.removeChild(fileInput);
+        });
+        
+        // Trigger file selection
+        document.body.appendChild(fileInput);
+        fileInput.click();
+        
+    } catch (error) {
+        console.error('Error setting up Excel import:', error);
+        alert('Error setting up Excel import');
+    }
+}
+
+// Determine current page type
+function getCurrentPageType() {
+    const path = window.location.pathname;
+    const filename = path.split('/').pop().replace('.html', '');
+    
+    if (filename === 'index' || filename === '') {
+        return 'contractor_list';
+    } else if (filename === 'bill-tracker') {
+        return 'bill_tracker';
+    } else if (filename === 'epbg') {
+        return 'epbg';
+    }
+    
+    return 'contractor_list'; // Default
+}
+
+// Import processed data into table
+async function importProcessedData(processedData, pageType) {
+    const tbody = document.getElementById('tableBody');
+    if (!tbody) {
+        throw new Error('Table not found');
+    }
+    
+    // Clear existing data
+    tbody.innerHTML = '';
+    
+    // Add rows based on page type
+    for (const rowData of processedData) {
+        if (pageType === 'contractor_list') {
+            addContractorRow(rowData);
+        } else if (pageType === 'bill_tracker') {
+            addBillTrackerRow(rowData);
+        } else if (pageType === 'epbg') {
+            addEPBGRow(rowData);
+        }
+    }
+    
+    updateTotalCount();
+    saveState();
+}
+
+// Add contractor row from processed data
+function addContractorRow(data) {
+    const tbody = document.getElementById('tableBody');
+    const row = document.createElement('tr');
+    
+    // Get next serial number
+    const currentRows = tbody.querySelectorAll('tr');
+    const nextSerialNumber = currentRows.length + 1;
+    
+    row.innerHTML = `
+        <td>
+            <input type="text" class="sno-input" value="${data.sno || nextSerialNumber}" readonly>
+        </td>
+        <td>
+            <input type="text" class="efile-input" value="${data.efile || ''}">
+        </td>
+        <td>
+            <input type="text" class="contractor-input" value="${data.contractor || ''}">
+            <a href="#" class="contractor-link" style="display: none;" target="_blank"></a>
+        </td>
+        <td>
+            <input type="text" class="description-input" value="${data.description || ''}">
+        </td>
+        <td>
+            <input type="text" class="value-input" value="${data.value || ''}">
+        </td>
+        <td>
+            <select class="gst-select">
+                <option value="">Select GST</option>
+                <option value="0%" ${data.gst === '0%' ? 'selected' : ''}>0%</option>
+                <option value="5%" ${data.gst === '5%' ? 'selected' : ''}>5%</option>
+                <option value="12%" ${data.gst === '12%' ? 'selected' : ''}>12%</option>
+                <option value="18%" ${data.gst === '18%' ? 'selected' : ''}>18%</option>
+                <option value="28%" ${data.gst === '28%' ? 'selected' : ''}>28%</option>
+                <option value="with gst" ${data.gst === 'with gst' ? 'selected' : ''}>With GST</option>
+                <option value="without gst" ${data.gst === 'without gst' ? 'selected' : ''}>Without GST</option>
+            </select>
+        </td>
+        <td>
+            <input type="date" class="start-date-input" value="${data.startDate || ''}">
+        </td>
+        <td>
+            <input type="date" class="end-date-input" value="${data.endDate || ''}">
+        </td>
+        <td><span class="duration-display">${data.duration || '-'}</span></td>
+        <td>
+            <input type="file" class="attachment-input" id="attachment-${nextSerialNumber}" accept=".pdf,.doc,.docx,.xls,.xlsx" style="display: none;">
+            <button type="button" class="attachment-btn" onclick="document.getElementById('attachment-${nextSerialNumber}').click()">
+                <i class="fas fa-paperclip"></i>
+                <span class="btn-text">Attach File</span>
+            </button>
+            <span class="file-name">No file selected</span>
+        </td>
+        <td><button class="delete-btn" onclick="deleteRow(this)"><i class="fas fa-trash"></i></button></td>
+    `;
+    
+    tbody.appendChild(row);
+    
+    // Setup event listeners
+    setupRowEventListeners(row);
+    
+    // Calculate duration if dates are available
+    if (data.startDate && data.endDate) {
+        calculateDuration({ target: row.querySelector('.end-date-input') });
+    }
+}
+
+// Add bill tracker row from processed data
+function addBillTrackerRow(data) {
+    // Implementation for bill tracker page
+    console.log('Adding bill tracker row:', data);
+    // TODO: Implement based on bill tracker table structure
+}
+
+// Add EPBG row from processed data
+function addEPBGRow(data) {
+    // Implementation for EPBG page
+    console.log('Adding EPBG row:', data);
+    // TODO: Implement based on EPBG table structure
+}
+
+// Loading indicator functions
+function showLoadingIndicator(message) {
+    const indicator = document.createElement('div');
+    indicator.id = 'loading-indicator';
+    indicator.className = 'loading-indicator';
+    indicator.innerHTML = `
+        <div class="loading-spinner"></div>
+        <div class="loading-message">${message}</div>
+    `;
+    indicator.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 20px;
+        border-radius: 8px;
+        z-index: 10000;
+        text-align: center;
+    `;
+    
+    document.body.appendChild(indicator);
+}
+
+function hideLoadingIndicator() {
+    const indicator = document.getElementById('loading-indicator');
+    if (indicator) {
+        document.body.removeChild(indicator);
+    }
+}
+
+// Format date from Excel to HTML input format
+function formatDate(dateValue) {
+    if (!dateValue) return '';
+    // ... (rest of the code remains the same)
+    
+    // Handle Excel date numbers
+    if (typeof dateValue === 'number') {
+        const excelDate = new Date((dateValue - 25569) * 86400 * 1000);
+        return excelDate.toISOString().split('T')[0];
+    }
+    
+    // Handle date strings
+    const date = new Date(dateValue);
+    if (isNaN(date.getTime())) return '';
+    
+    return date.toISOString().split('T')[0];
 }
 
 // Filter table based on search query
