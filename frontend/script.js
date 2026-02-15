@@ -18,6 +18,7 @@ function updateBulkUI() {
     const selectedCount = document.getElementById('selectedCount');
     const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
     const bulkEditBtn = document.getElementById('bulkEditBtn');
+    const editModeIndicator = document.getElementById('editModeIndicator');
     const count = selectedRows.size;
     
     if (count > 0) {
@@ -32,6 +33,7 @@ function updateBulkUI() {
             bulkEditBtn.style.display = 'flex';
         }
     } else {
+        // Hide all bulk operation elements
         if (selectedCount) {
             selectedCount.style.display = 'none';
         }
@@ -40,6 +42,19 @@ function updateBulkUI() {
         }
         if (bulkEditBtn) {
             bulkEditBtn.style.display = 'none';
+        }
+        
+        // Hide edit mode indicator and exit edit mode when no rows selected
+        if (editModeIndicator) {
+            editModeIndicator.classList.remove('show');
+        }
+        
+        // Exit edit mode and remove edit-mode class from all rows
+        if (editMode) {
+            editMode = false;
+            document.querySelectorAll('.edit-mode').forEach(row => {
+                row.classList.remove('edit-mode');
+            });
         }
     }
 }

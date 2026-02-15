@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics - Data Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <div class="dashboard-container">
+        <!-- Mobile Menu Toggle -->
+        <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Toggle Menu">
+            <i class="fas fa-bars"></i>
+        </button>
+        
+        <!-- Mobile Overlay -->
+        <div class="mobile-overlay" id="mobileOverlay"></div>
+
+        <!-- Sidebar Toggle Button -->
+        <button class="sidebar-toggle-btn" id="sidebarToggleBtn" aria-label="Toggle Sidebar">
+            <i class="fas fa-bars"></i>
+        </button>
+
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-grid">
+                        <img src="CMRL.png" class="logo-image">
+                    </div>
+                    <span class="logo-text">Data Dashboard</span>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="index.html" class="nav-item" data-module="contractor-list">
+                    <i class="fas fa-list"></i>
+                    <span>Contractor List</span>
+                </a>
+                <a href="bill-tracker.html" class="nav-item" data-module="bill-tracker">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                    <span>Bill Tracker</span>
+                </a>
+                <a href="epbg.html" class="nav-item" data-module="epbgs">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>EPBG's</span>
+                </a>
+                <a href="analytics.html" class="nav-item active" data-module="analytics">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Analytics</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-left">
+                    <button id="welcomeToggleBtn" class="welcome-toggle-btn" aria-label="Toggle Welcome Message" title="Toggle Welcome Message">
+                        <i class="fas fa-eye-slash"></i>
+                    </button>
+                    <h1 class="page-title">Analytics</h1>
+                    <p class="welcome-text">Data insights and performance metrics</p>
+                </div>
+                <div class="header-right">
+                    <!-- Header Navigation Icons -->
+                    <nav class="header-nav">
+                        <a href="index.html" class="header-nav-item" data-page="contractor-list" title="Contractor List">
+                            <i class="fas fa-list"></i>
+                        </a>
+                        <a href="bill-tracker.html" class="header-nav-item" data-page="bill-tracker" title="Bill Tracker">
+                            <i class="fas fa-file-invoice-dollar"></i>
+                        </a>
+                        <a href="epbg.html" class="header-nav-item" data-page="epbg" title="EPBG">
+                            <i class="fas fa-shield-alt"></i>
+                        </a>
+                        <a href="analytics.html" class="header-nav-item active" data-page="analytics" title="Analytics">
+                            <i class="fas fa-chart-line"></i>
+                        </a>
+                    </nav>
+                    
+                    <!-- Header Action Buttons -->
+                    <div class="header-actions">
+                        <button class="header-action-btn refresh-btn" id="refreshAnalyticsBtn" title="Refresh Analytics">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button class="header-action-btn export-btn" id="exportAnalyticsBtn" title="Export Analytics">
+                            <i class="fas fa-download"></i>
+                        </button>
+                        <button class="header-action-btn print-btn" id="printAnalyticsBtn" title="Print Analytics">
+                            <i class="fas fa-print"></i>
+                        </button>
+                    </div>
+                    
+                    <button id="themeToggleBtn" class="theme-toggle-btn" aria-label="Toggle Theme">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                    <div class="search-container">
+                        <i class="fas fa-search search-icon"></i>
+                        <input type="text" class="search-input" placeholder="Search analytics...">
+                    </div>
+                    <button class="notification-btn" id="notificationBellBtn">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge" id="notificationBadge">0</span>
+                    </button>
+                    <div class="profile-dropdown-wrapper">
+                        <button class="profile-trigger" id="profileTrigger" aria-label="User Profile">
+                            <div class="profile-avatar" id="userAvatar">U</div>
+                            <i class="fas fa-chevron-down profile-arrow"></i>
+                        </button>
+                        <div class="profile-dropdown" id="profileDropdown">
+                            <div class="profile-dropdown-header">
+                                <div class="profile-avatar-large" id="userAvatarLarge">U</div>
+                                <div class="profile-dropdown-info">
+                                    <div class="profile-dropdown-name" id="userNameDropdown">Loading...</div>
+                                    <div class="profile-dropdown-role" id="userRoleDropdown">Loading...</div>
+                                </div>
+                            </div>
+                            <div class="profile-dropdown-divider"></div>
+                            <a href="#" class="profile-dropdown-item" id="languageMenuItem">
+                                <i class="fas fa-globe"></i>
+                                <span>Language</span>
+                            </a>
+                            <div class="profile-dropdown-divider"></div>
+                            <a href="#" class="profile-dropdown-item" id="helpMenuItem">
+                                <i class="fas fa-question-circle"></i>
+                                <span>Help & Support</span>
+                            </a>
+                            <div class="profile-dropdown-divider"></div>
+                            <a href="#" class="profile-dropdown-item logout-item" id="logoutBtn">
+                                <i class="fas fa-sign-out-alt"></i>
+                                <span>Logout</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Content Area -->
+            <div class="content-area">
+                <!-- KPI Dashboard Container -->
+                    <!-- KPI Dashboard Header -->
+                    <div class="kpi-header">
+                        <h2 class="kpi-title">Business Analytics Dashboard</h2>
+                        <p class="kpi-subtitle">Real-time KPIs & Performance Metrics</p>
+                        <div class="kpi-controls">
+                            <button class="kpi-control-btn" id="refreshKpiBtn">
+                                <i class="fas fa-sync-alt"></i> Refresh Data
+                            </button>
+                            <button class="kpi-control-btn" id="exportKpiBtn">
+                                <i class="fas fa-download"></i> Export
+                            </button>
+                            <div class="last-updated">
+                                <label>Last Updated:</label>
+                                <span id="lastUpdatedTime">Just now</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- KPI Cards Grid -->
+                    <div class="kpi-cards-grid">
+                        <!-- Total Contractors KPI -->
+                        <div class="kpi-card">
+                            <div class="kpi-icon">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div class="kpi-content">
+                                <div class="kpi-value" id="totalContractorsKpi">0</div>
+                                <div class="kpi-label">Total Contractors</div>
+                                <div class="kpi-change positive">
+                                    <i class="fas fa-arrow-up"></i>
+                                    <span>+12%</span>
+                                </div>
+                            </div>
+                            <div class="kpi-chart">
+                                <canvas id="contractorsSparkline"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Active Contractors KPI -->
+                        <div class="kpi-card">
+                            <div class="kpi-icon">
+                                <i class="fas fa-user-check"></i>
+                            </div>
+                            <div class="kpi-content">
+                                <div class="kpi-value" id="activeContractorsKpi">0</div>
+                                <div class="kpi-label">Active Contractors</div>
+                                <div class="kpi-change positive">
+                                    <i class="fas fa-arrow-up"></i>
+                                    <span>+8%</span>
+                                </div>
+                            </div>
+                            <div class="kpi-chart">
+                                <canvas id="activeSparkline"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Total Portfolio Value KPI -->
+                        <div class="kpi-card">
+                            <div class="kpi-icon">
+                                <i class="fas fa-rupee-sign"></i>
+                            </div>
+                            <div class="kpi-content">
+                                <div class="kpi-value" id="portfolioValueKpi">₹0</div>
+                                <div class="kpi-label">Portfolio Value</div>
+                                <div class="kpi-change positive">
+                                    <i class="fas fa-arrow-up"></i>
+                                    <span>+23%</span>
+                                </div>
+                            </div>
+                            <div class="kpi-chart">
+                                <canvas id="valueSparkline"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Expiring Soon KPI -->
+                        <div class="kpi-card warning">
+                            <div class="kpi-icon">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <div class="kpi-content">
+                                <div class="kpi-value" id="expiringSoonKpi">0</div>
+                                <div class="kpi-label">Expiring Soon (30 days)</div>
+                                <div class="kpi-change negative">
+                                    <i class="fas fa-arrow-up"></i>
+                                    <span>+3</span>
+                                </div>
+                            </div>
+                            <div class="kpi-chart">
+                                <canvas id="expiringSparkline"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Data Consistency KPI -->
+                        <div class="kpi-card">
+                            <div class="kpi-icon">
+                                <i class="fas fa-database"></i>
+                            </div>
+                            <div class="kpi-content">
+                                <div class="kpi-value" id="dataConsistencyKpi">0%</div>
+                                <div class="kpi-label">Data Consistency</div>
+                                <div class="kpi-change positive">
+                                    <i class="fas fa-arrow-up"></i>
+                                    <span>+5%</span>
+                                </div>
+                            </div>
+                            <div class="kpi-chart">
+                                <canvas id="consistencySparkline"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Value Utilization KPI -->
+                        <div class="kpi-card">
+                            <div class="kpi-icon">
+                                <i class="fas fa-chart-pie"></i>
+                            </div>
+                            <div class="kpi-content">
+                                <div class="kpi-value" id="valueUtilizationKpi">0%</div>
+                                <div class="kpi-label">Value Utilization</div>
+                                <div class="kpi-change positive">
+                                    <i class="fas fa-arrow-up"></i>
+                                    <span>+15%</span>
+                                </div>
+                            </div>
+                            <div class="kpi-chart">
+                                <canvas id="utilizationSparkline"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Total Bills KPI -->
+                        <div class="kpi-card">
+                            <div class="kpi-icon">
+                                <i class="fas fa-file-invoice"></i>
+                            </div>
+                            <div class="kpi-content">
+                                <div class="kpi-value" id="totalBillsKpi">0</div>
+                                <div class="kpi-label">Total Bills</div>
+                                <div class="kpi-change positive">
+                                    <i class="fas fa-arrow-up"></i>
+                                    <span>+18%</span>
+                                </div>
+                            </div>
+                            <div class="kpi-chart">
+                                <canvas id="billsSparkline"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- EPBG Coverage KPI -->
+                        <div class="kpi-card">
+                            <div class="kpi-icon">
+                                <i class="fas fa-shield-alt"></i>
+                            </div>
+                            <div class="kpi-content">
+                                <div class="kpi-value" id="epbgCoverageKpi">0%</div>
+                                <div class="kpi-label">EPBG Coverage</div>
+                                <div class="kpi-change positive">
+                                    <i class="fas fa-arrow-up"></i>
+                                    <span>+7%</span>
+                                </div>
+                            </div>
+                            <div class="kpi-chart">
+                                <canvas id="epbgSparkline"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Analytics Charts Grid -->
+                    <div class="analytics-charts-grid">
+                        <!-- Contractor Trends Chart -->
+                        <div class="chart-container">
+                            <div class="chart-header">
+                                <h3><i class="fas fa-chart-line"></i> Contractor Trends</h3>
+                            </div>
+                            <div class="chart-content">
+                                <canvas id="contractorTrendsChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Value Distribution Chart -->
+                        <div class="chart-container">
+                            <div class="chart-header">
+                                <h3><i class="fas fa-chart-pie"></i> Value Distribution</h3>
+                            </div>
+                            <div class="chart-content">
+                                <canvas id="valueDistributionChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- GST Breakdown Chart -->
+                        <div class="chart-container">
+                            <div class="chart-header">
+                                <h3><i class="fas fa-chart-pie"></i> GST Breakdown</h3>
+                            </div>
+                            <div class="chart-content">
+                                <canvas id="gstBreakdownChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Duration Analysis Chart -->
+                        <div class="chart-container">
+                            <div class="chart-header">
+                                <h3><i class="fas fa-chart-bar"></i> Duration Analysis</h3>
+                            </div>
+                            <div class="chart-content">
+                                <canvas id="durationAnalysisChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3D Charts Grid -->
+                    <div class="charts-3d-grid">
+                        <!-- 3D Contractor Performance Chart -->
+                        <div class="chart-3d-container">
+                            <div class="chart-3d-header">
+                                <h3><i class="fas fa-cube"></i> 3D Contractor Performance</h3>
+                                <div class="chart-3d-controls">
+                                    <button class="chart-3d-btn" onclick="rotateChart('contractor3d')">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </button>
+                                    <button class="chart-3d-btn" onclick="resetChart('contractor3d')">
+                                        <i class="fas fa-undo"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="chart-3d-content">
+                                <canvas id="contractor3dChart" class="chart-3d-canvas"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- 3D Bill Flow Chart -->
+                        <div class="chart-3d-container">
+                            <div class="chart-3d-header">
+                                <h3><i class="fas fa-cube"></i> 3D Bill Flow Analysis</h3>
+                                <div class="chart-3d-controls">
+                                    <button class="chart-3d-btn" onclick="rotateChart('bill3d')">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </button>
+                                    <button class="chart-3d-btn" onclick="resetChart('bill3d')">
+                                        <i class="fas fa-undo"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="chart-3d-content">
+                                <canvas id="bill3dChart" class="chart-3d-canvas"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- 3D EPBG Risk Chart -->
+                        <div class="chart-3d-container">
+                            <div class="chart-3d-header">
+                                <h3><i class="fas fa-cube"></i> 3D EPBG Risk Analysis</h3>
+                                <div class="chart-3d-controls">
+                                    <button class="chart-3d-btn" onclick="rotateChart('epbg3d')">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </button>
+                                    <button class="chart-3d-btn" onclick="resetChart('epbg3d')">
+                                        <i class="fas fa-undo"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="chart-3d-content">
+                                <canvas id="epbg3dChart" class="chart-3d-canvas"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- 3D Timeline Chart -->
+                        <div class="chart-3d-container">
+                            <div class="chart-3d-header">
+                                <h3><i class="fas fa-cube"></i> 3D Project Timeline</h3>
+                                <div class="chart-3d-controls">
+                                    <button class="chart-3d-btn" onclick="rotateChart('timeline3d')">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </button>
+                                    <button class="chart-3d-btn" onclick="resetChart('timeline3d')">
+                                        <i class="fas fa-undo"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="chart-3d-content">
+                                <canvas id="timeline3dChart" class="chart-3d-canvas"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- 3D Network Graph -->
+                        <div class="chart-3d-container wide">
+                            <div class="chart-3d-header">
+                                <h3><i class="fas fa-cube"></i> 3D Contractor Network</h3>
+                                <div class="chart-3d-controls">
+                                    <button class="chart-3d-btn" onclick="rotateChart('network3d')">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </button>
+                                    <button class="chart-3d-btn" onclick="resetChart('network3d')">
+                                        <i class="fas fa-undo"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="chart-3d-content">
+                                <canvas id="network3dChart" class="chart-3d-canvas"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- 3D Financial Dashboard -->
+                        <div class="chart-3d-container wide">
+                            <div class="chart-3d-header">
+                                <h3><i class="fas fa-cube"></i> 3D Financial Dashboard</h3>
+                                <div class="chart-3d-controls">
+                                    <button class="chart-3d-btn" onclick="rotateChart('financial3d')">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </button>
+                                    <button class="chart-3d-btn" onclick="resetChart('financial3d')">
+                                        <i class="fas fa-undo"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="chart-3d-content">
+                                <canvas id="financial3dChart" class="chart-3d-canvas"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Loading Indicator -->
+    <div class="loading-indicator" id="analyticsLoadingIndicator" style="display: none;">
+        <div class="loading-spinner"></div>
+        <div class="loading-message">Loading analytics...</div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="auth.js"></script>
+    <script src="api.js"></script>
+    <script src="analytics.js"></script>
+    <script src="kpi-dashboard.js"></script>
+    <script>
+        // Wait for KPI dashboard to load, then initialize 3D charts
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Wait for KPI dashboard to initialize
+            if (window.kpiDashboard) {
+                await window.kpiDashboard.init();
+            }
+            
+            // Wait a bit more for DOM to be fully ready
+            setTimeout(() => {
+                if (window.kpiDashboard && window.kpiDashboard.data && window.kpiDashboard.data.totalContractors > 0) {
+                    // Load 3D charts script after KPI data is ready
+                    const script = document.createElement('script');
+                    script.src = 'charts-3d.js';
+                    script.onload = function() {
+                        console.log('3D charts script loaded');
+                        // Initialize charts after script is loaded
+                        setTimeout(() => {
+                            if (window.charts3D) {
+                                window.charts3D.init();
+                                console.log('3D charts initialized with real data');
+                            } else {
+                                console.log('Charts3D class not found, creating new instance');
+                                window.charts3D = new Charts3D();
+                                window.charts3D.init().then(() => {
+                                    console.log('3D charts initialized with real data (async)');
+                                });
+                            }
+                        }, 500);
+                    };
+                    document.head.appendChild(script);
+                } else {
+                    console.log('KPI data not ready, loading 3D charts anyway');
+                    // Fallback: load 3D charts immediately
+                    const script = document.createElement('script');
+                    script.src = 'charts-3d.js';
+                    script.onload = function() {
+                        console.log('3D charts script loaded (fallback)');
+                        setTimeout(() => {
+                            window.charts3D = new Charts3D();
+                            window.charts3D.init().then(() => {
+                                console.log('3D charts initialized with fallback data (async)');
+                            });
+                        }, 500);
+                    };
+                    document.head.appendChild(script);
+                }
+            }, 2000);
+        });
+    </script>
+    <script>
+        // Check authentication on page load
+        (async function () {
+            const user = await Auth.checkAuth();
+            if (user) {
+                // Update UI with user info
+                const userName = user.name;
+                const userRole = user.role.charAt(0).toUpperCase() + user.role.slice(1);
+                const userInitials = userName.split(' ').map(n => n[0]).join('').toUpperCase();
+                
+                document.getElementById('userAvatar').textContent = userInitials;
+                document.getElementById('userAvatarLarge').textContent = userInitials;
+                document.getElementById('userNameDropdown').textContent = userName;
+                document.getElementById('userRoleDropdown').textContent = userRole;
+            }
+        })();
+
+        // Profile dropdown toggle
+        const profileTrigger = document.getElementById('profileTrigger');
+        const profileDropdown = document.getElementById('profileDropdown');
+        
+        if (profileTrigger && profileDropdown) {
+            profileTrigger.addEventListener('click', function(e) {
+                e.stopPropagation();
+                profileDropdown.classList.toggle('show');
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!profileTrigger.contains(e.target) && !profileDropdown.contains(e.target)) {
+                    profileDropdown.classList.remove('show');
+                }
+            });
+        }
+
+        // Language menu item
+        const languageMenuItem = document.getElementById('languageMenuItem');
+        const languageModal = document.getElementById('languageModal');
+        const closeLanguageModal = document.getElementById('closeLanguageModal');
+        
+        if (languageMenuItem && languageModal) {
+            languageMenuItem.addEventListener('click', function(e) {
+                e.preventDefault();
+                profileDropdown.classList.remove('show');
+                languageModal.classList.add('show');
+            });
+
+            closeLanguageModal.addEventListener('click', function() {
+                languageModal.classList.remove('show');
+            });
+
+            languageModal.addEventListener('click', function(e) {
+                if (e.target === languageModal) {
+                    languageModal.classList.remove('show');
+                }
+            });
+        }
+
+        // Mobile Menu Toggle
+        const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+        const mobileOverlay = document.getElementById('mobileOverlay');
+        const sidebar = document.getElementById('sidebar');
+        
+        if (mobileMenuToggle && mobileOverlay && sidebar) {
+            mobileMenuToggle.addEventListener('click', function() {
+                sidebar.classList.toggle('mobile-open');
+                mobileOverlay.classList.toggle('show');
+            });
+            
+            mobileOverlay.addEventListener('click', function() {
+                sidebar.classList.remove('mobile-open');
+                mobileOverlay.classList.remove('show');
+            });
+        }
+
+        // Sidebar Toggle Functionality
+        const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
+        const mainContent = document.querySelector('.main-content');
+        
+        if (sidebarToggleBtn && sidebar && mainContent) {
+            // Load saved preference
+            const isSidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+            
+            function updateSidebarVisibility(collapsed) {
+                if (collapsed) {
+                    sidebar.classList.add('collapsed');
+                    mainContent.classList.add('expanded');
+                    sidebarToggleBtn.classList.remove('active');
+                    sidebarToggleBtn.innerHTML = '<i class="fas fa-bars"></i>';
+                    sidebarToggleBtn.title = 'Show Sidebar';
+                } else {
+                    sidebar.classList.remove('collapsed');
+                    mainContent.classList.remove('expanded');
+                    sidebarToggleBtn.classList.add('active');
+                    sidebarToggleBtn.innerHTML = '<i class="fas fa-times"></i>';
+                    sidebarToggleBtn.title = 'Hide Sidebar';
+                }
+                localStorage.setItem('sidebarCollapsed', collapsed);
+            }
+            
+            // Set initial state
+            updateSidebarVisibility(isSidebarCollapsed);
+            
+            sidebarToggleBtn.addEventListener('click', function() {
+                const currentlyCollapsed = sidebar.classList.contains('collapsed');
+                updateSidebarVisibility(!currentlyCollapsed);
+            });
+        }
+    </script>
+</body>
+
+</html>
