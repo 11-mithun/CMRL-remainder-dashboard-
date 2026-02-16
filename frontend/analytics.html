@@ -528,6 +528,24 @@
             logoutBtn.addEventListener('click', async function(e) {
                 e.preventDefault();
                 try {
+                    // Clear all local data before logout
+                    localStorage.clear();
+                    sessionStorage.clear();
+                    
+                    // Clear any global data caches
+                    if (window.contractorDataCache) {
+                        window.contractorDataCache = null;
+                    }
+                    if (window.kpiDashboard) {
+                        window.kpiDashboard.contractorDataCache = null;
+                        window.kpiDashboard.data = {};
+                    }
+                    if (window.aiAnalytics) {
+                        window.aiAnalytics.dataCache = null;
+                    }
+                    
+                    console.log('All local data cleared before logout');
+                    
                     await Auth.logout();
                     window.location.href = 'index.html';
                 } catch (error) {

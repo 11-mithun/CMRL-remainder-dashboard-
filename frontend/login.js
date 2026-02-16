@@ -33,9 +33,26 @@ document.getElementById('loginForm').addEventListener('submit', async function (
         if (response.ok && data.success) {
             // Login successful
             console.log('Login successful:', data);
-
+            
+            // Clear any existing data before storing new user info
+            localStorage.clear();
+            sessionStorage.clear();
+            console.log('All local data cleared before login');
+            
             // Store user info in localStorage (optional, for display purposes)
             localStorage.setItem('user', JSON.stringify(data.user));
+            
+            // Clear global caches
+            if (window.contractorDataCache) {
+                window.contractorDataCache = null;
+            }
+            if (window.kpiDashboard) {
+                window.kpiDashboard.contractorDataCache = null;
+                window.kpiDashboard.data = {};
+            }
+            if (window.aiAnalytics) {
+                window.aiAnalytics.dataCache = null;
+            }
 
             // Redirect to dashboard
             window.location.href = '/index.html';
