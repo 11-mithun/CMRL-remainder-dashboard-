@@ -4,20 +4,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - CMRL Metro Dashboard</title>
+    <title>Login - Reminder Dashboard</title>
     <link rel="stylesheet" href="login.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
 </head>
 
 <body>
-    <!-- 3D Hyper-Loop Container -->
-    <div id="hyper-loop-container"></div>
-    
-    <!-- 3D Floating CMRL Text -->
-    <div id="cmrl-3d-text">CMRL</div>
+    <!-- Video Background -->
+    <video autoplay muted loop id="loginVideo">
+        <source src="Train_Video_Generation_With_Effects.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+    </video>
     
     <div class="login-container">
         <div class="login-card">
@@ -25,20 +21,20 @@
                 <div class="logo-container">
                     <img src="CMRL.png" alt="CMRL Logo" class="cmrl-logo">
                 </div>
-                <h1>Metro Dashboard</h1>
-                <p>Access Control System</p>
+                <h1>Data Dashboard</h1>
+                <p>Sign in to continue</p>
             </div>
 
             <form id="loginForm" class="login-form">
                 <div class="form-group">
                     <label for="username">Username or Email</label>
                     <input type="text" id="username" name="username" required
-                        placeholder="Enter your username or email" autocomplete="username">
+                        placeholder="Enter your username or email">
                 </div>
 
                 <div class="form-group">
                     <label for="password">Password</label>
-                    <input type="password" id="password" name="password" required placeholder="Enter your password" autocomplete="current-password">
+                    <input type="password" id="password" name="password" required placeholder="Enter your password">
                 </div>
 
                 <div class="forgot-password-link">
@@ -66,7 +62,7 @@
                 <p>Enter your email address to receive an OTP.</p>
                 <div class="form-group">
                     <label for="resetEmail">Email Address</label>
-                    <input type="email" id="resetEmail" placeholder="Enter your registered email" autocomplete="email">
+                    <input type="email" id="resetEmail" placeholder="Enter your registered email">
                 </div>
                 <button id="sendOtpBtn" class="login-btn">
                     <span class="btn-text">Send OTP</span>
@@ -79,11 +75,11 @@
                 <p>OTP sent! Please check your email.</p>
                 <div class="form-group">
                     <label for="otpInput">Enter OTP</label>
-                    <input type="text" id="otpInput" placeholder="6-digit OTP" maxlength="6" autocomplete="one-time-code">
+                    <input type="text" id="otpInput" placeholder="6-digit OTP" maxlength="6">
                 </div>
                 <div class="form-group">
                     <label for="newPassword">New Password</label>
-                    <input type="password" id="newPassword" placeholder="Enter new password (min 8 chars)" autocomplete="new-password">
+                    <input type="password" id="newPassword" placeholder="Enter new password (min 8 chars)">
                 </div>
                 <button id="resetPasswordBtn" class="login-btn">
                     <span class="btn-text">Reset Password</span>
@@ -96,7 +92,6 @@
     </div>
 
     <script src="login.js"></script>
-    <script src="login-3d.js"></script>
 </body>
 
 </html>

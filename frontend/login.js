@@ -166,6 +166,58 @@ checkAuth();
 
 
 
+// Video Loading Handler
+
+document.addEventListener('DOMContentLoaded', function() {
+
+    const video = document.getElementById('loginVideo');
+
+    if (video) {
+
+        // Handle video loading
+
+        video.addEventListener('loadeddata', function() {
+
+            video.classList.add('loaded');
+
+            console.log('Login video loaded successfully');
+
+        });
+
+        // Handle video loading errors
+
+        video.addEventListener('error', function() {
+
+            console.error('Error loading login video');
+
+            // Fallback to static background if video fails
+
+            document.body.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+
+        });
+
+        // Ensure video plays
+
+        video.play().catch(function(error) {
+
+            console.log('Auto-play was prevented:', error);
+
+            // Add click to play functionality
+
+            document.addEventListener('click', function() {
+
+                video.play();
+
+            }, { once: true });
+
+        });
+
+    }
+
+});
+
+
+
 // ==========================================
 
 // FORGOT PASSWORD LOGIC
