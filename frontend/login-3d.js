@@ -66,7 +66,6 @@ class MetroHyperLoop {
             metalness: 0.2,
             roughness: 0.1,
             transmission: 0.9,
-            thickness: 0.5,
             transparent: true,
             opacity: 0.3,
             envMapIntensity: 1
@@ -103,8 +102,8 @@ class MetroHyperLoop {
         // Chrome Train Body
         const trainGroup = new THREE.Group();
         
-        // Main Body
-        const bodyGeometry = new THREE.CapsuleGeometry(1, 4, 8, 16);
+        // Main Body - using Cylinder instead of Capsule for compatibility
+        const bodyGeometry = new THREE.CylinderGeometry(1, 1, 4, 16);
         const bodyMaterial = new THREE.MeshPhysicalMaterial({
             color: 0xffffff,
             metalness: 0.9,
