@@ -67,18 +67,21 @@ document.getElementById('loginForm').addEventListener('submit', async function (
             // Login successful
 
             console.log('Login successful:', data);
-
-
-
-            // Store user info in localStorage (optional, for display purposes)
-
-            localStorage.setItem('user', JSON.stringify(data.user));
-
-
-
-            // Redirect to dashboard
-
-            window.location.href = '/index.html';
+            
+            // Hide login form and show train loading
+            document.querySelector('.login-card').style.display = 'none';
+            document.getElementById('trainLoadingScreen').style.display = 'flex';
+            
+            // Wait 5 seconds then redirect
+            setTimeout(() => {
+                // Store user info in localStorage (optional, for display purposes)
+                localStorage.setItem('user', JSON.stringify(data.user));
+                
+                // Redirect to dashboard
+                window.location.href = '/index.html';
+            }, 5000); // 5 seconds delay
+            
+            return; // Stop further execution
 
         } else {
 
@@ -171,50 +174,115 @@ checkAuth();
 document.addEventListener('DOMContentLoaded', function() {
 
     const video = document.getElementById('loginVideo');
-
+    
     if (video) {
-
         // Handle video loading
-
         video.addEventListener('loadeddata', function() {
-
             video.classList.add('loaded');
-
             console.log('Login video loaded successfully');
-
         });
-
+        
         // Handle video loading errors
-
         video.addEventListener('error', function() {
-
             console.error('Error loading login video');
-
-            // Fallback to static background if video fails
-
+            // Fallback to gradient background if video fails
             document.body.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
-
         });
-
+        
         // Ensure video plays
-
         video.play().catch(function(error) {
-
             console.log('Auto-play was prevented:', error);
-
             // Add click to play functionality
-
             document.addEventListener('click', function() {
-
                 video.play();
-
             }, { once: true });
-
         });
-
     }
-
+    
+    // Add input animation effects
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
+    
+    if (usernameInput) {
+        usernameInput.addEventListener('input', function(e) {
+            if (e.target.value.length > 0) {
+                e.target.parentElement.classList.add('has-value');
+                // Add leaf fall effect
+                createLeafFall(e.target);
+            } else {
+                e.target.parentElement.classList.remove('has-value');
+            }
+        });
+        
+        usernameInput.addEventListener('focus', function(e) {
+            e.target.parentElement.classList.add('focused');
+        });
+        
+        usernameInput.addEventListener('blur', function(e) {
+            e.target.parentElement.classList.remove('focused');
+        });
+    }
+    
+    if (passwordInput) {
+        passwordInput.addEventListener('input', function(e) {
+            if (e.target.value.length > 0) {
+                e.target.parentElement.classList.add('has-value');
+                // Add leaf fall effect
+                createLeafFall(e.target);
+            } else {
+                e.target.parentElement.classList.remove('has-value');
+            }
+        });
+        
+        passwordInput.addEventListener('focus', function(e) {
+            e.target.parentElement.classList.add('focused');
+        });
+        
+        passwordInput.addEventListener('blur', function(e) {
+            e.target.parentElement.classList.remove('focused');
+        });
+    }
 });
+
+// Create leaf fall effect for inputs
+function createLeafFall(inputElement) {
+    const leafContainer = document.getElementById('leafContainer');
+    if (!leafContainer) return;
+    
+    // Get input position
+    const inputRect = inputElement.getBoundingClientRect();
+    const containerRect = leafContainer.getBoundingClientRect();
+    
+    // Create multiple leaves for better effect
+    for (let i = 0; i < 3; i++) {
+        setTimeout(() => {
+            const leaf = document.createElement('div');
+            leaf.className = `leaf-particle type-${Math.floor(Math.random() * 3) + 1}`;
+            
+            // Position leaf at cursor location
+            const randomX = inputRect.left - containerRect.left + (Math.random() * inputRect.width);
+            const randomY = inputRect.top - containerRect.top;
+            
+            leaf.style.left = `${randomX}px`;
+            leaf.style.top = `${randomY}px`;
+            
+            // Add random sway animation
+            const swayDelay = Math.random() * 2;
+            const swayDuration = 2 + Math.random() * 2;
+            
+            leaf.style.animation = `leafFall 3s ease-in-out forwards, leafSway ${swayDuration}s ease-in-out ${swayDelay}s infinite`;
+            
+            leafContainer.appendChild(leaf);
+            
+            // Remove leaf after animation
+            setTimeout(() => {
+                if (leaf.parentNode) {
+                    leaf.remove();
+                }
+            }, 3000);
+        }, i * 100); // Stagger the leaves
+    }
+}
 
 
 

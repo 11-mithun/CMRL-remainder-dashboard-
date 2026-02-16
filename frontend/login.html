@@ -16,6 +16,7 @@
     </video>
     
     <div class="login-container">
+        <div class="leaf-container" id="leafContainer"></div>
         <div class="login-card">
             <div class="login-header">
                 <div class="logo-container">
@@ -26,13 +27,13 @@
             </div>
 
             <form id="loginForm" class="login-form">
-                <div class="form-group">
+                <div class="form-group username">
                     <label for="username">Username or Email</label>
                     <input type="text" id="username" name="username" required
                         placeholder="Enter your username or email">
                 </div>
 
-                <div class="form-group">
+                <div class="form-group password">
                     <label for="password">Password</label>
                     <input type="password" id="password" name="password" required placeholder="Enter your password">
                 </div>
@@ -88,6 +89,43 @@
             </div>
 
             <div id="resetMessage" class="error-message"></div>
+        </div>
+    </div>
+
+    <!-- Train Loading Screen -->
+    <div id="trainLoadingScreen" class="train-loading" style="display: none;">
+        <div class="train-loading-container">
+            <div class="train-icon">
+                <svg width="80" height="80" viewBox="0 0 100 100">
+                    <g transform="translate(50, 50)">
+                        <!-- Train Body -->
+                        <rect x="-30" y="-15" width="60" height="25" fill="#0066ff" rx="3"/>
+                        <!-- Train Front -->
+                        <rect x="25" y="-10" width="15" height="20" fill="#0052cc" rx="2"/>
+                        <!-- Windows -->
+                        <rect x="-25" y="-10" width="8" height="8" fill="#ffffff" rx="1"/>
+                        <rect x="-10" y="-10" width="8" height="8" fill="#ffffff" rx="1"/>
+                        <rect x="5" y="-10" width="8" height="8" fill="#ffffff" rx="1"/>
+                        <!-- Wheels -->
+                        <circle cx="-20" cy="15" r="5" fill="#333"/>
+                        <circle cx="0" cy="15" r="5" fill="#333"/>
+                        <circle cx="20" cy="15" r="5" fill="#333"/>
+                        <!-- Wheels Animation -->
+                        <circle cx="-20" cy="15" r="3" fill="none" stroke="#666" stroke-width="1" class="wheel-spin"/>
+                        <circle cx="0" cy="15" r="3" fill="none" stroke="#666" stroke-width="1" class="wheel-spin"/>
+                        <circle cx="20" cy="15" r="3" fill="none" stroke="#666" stroke-width="1" class="wheel-spin"/>
+                    </g>
+                </svg>
+            </div>
+            <div class="train-text">
+                <h2>Boarding the Dashboard...</h2>
+                <p>Preparing your personalized experience</p>
+                <div class="loading-dots">
+                    <span class="dot">.</span>
+                    <span class="dot">.</span>
+                    <span class="dot">.</span>
+                </div>
+            </div>
         </div>
     </div>
 
