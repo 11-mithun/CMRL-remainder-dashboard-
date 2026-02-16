@@ -11,6 +11,22 @@ document.addEventListener('DOMContentLoaded', function () {
     initializeAnalytics();
     setupEventListeners();
     loadAnalyticsData();
+    
+    // Initialize AI Analytics integration
+    setTimeout(() => {
+        if (window.aiAnalytics) {
+            console.log('Analytics: AI Analytics integration ready');
+        } else {
+            console.log('Analytics: AI Analytics not yet loaded');
+        }
+    }, 2000);
+    
+    // Start periodic expiry alert checking (every 10 minutes)
+    setInterval(() => {
+        loadContractorDataCached().then(contractors => {
+            checkExpiryAlerts(contractors);
+        });
+    }, 600000); // 10 minutes
 });
 
 // Initialize analytics
@@ -98,7 +114,7 @@ async function loadAnalyticsData() {
     
     try {
         // Get data from all modules
-        const contractorData = await loadContractorData();
+        const contractorData = await loadContractorDataCached();
         const billData = await loadBillData();
         const epbgData = await loadEPBGData();
         
@@ -107,6 +123,9 @@ async function loadAnalyticsData() {
         
         // Update summary cards
         updateSummaryCards(filteredData);
+        
+        // Check for expiry alerts
+        checkExpiryAlerts(filteredData.contractors);
         
         // Update charts
         updateCharts(filteredData);
@@ -141,6 +160,27 @@ async function loadContractorData() {
         // Try direct DOM fallback
         return getContractorDataFromDOM();
     }
+}
+
+// Cache to prevent multiple API calls
+let contractorDataCache = null;
+let lastDataLoadTime = 0;
+const DATA_CACHE_DURATION = 5000; // 5 seconds
+
+// Cached contractor data loader
+async function loadContractorDataCached() {
+    const now = Date.now();
+    
+    // Return cached data if still valid
+    if (contractorDataCache && (now - lastDataLoadTime) < DATA_CACHE_DURATION) {
+        console.log('Using cached contractor data:', contractorDataCache.length, 'records');
+        return contractorDataCache;
+    }
+    
+    // Load fresh data
+    contractorDataCache = await loadContractorData();
+    lastDataLoadTime = now;
+    return contractorDataCache;
 }
 
 // Fallback: Get contractor data directly from DOM
@@ -921,51 +961,93 @@ function hideLoadingIndicator() {
     }
 }
 
+// Check for expiry alerts
+function checkExpiryAlerts(contractors) {
+    if (!contractors || contractors.length === 0) return;
+    
+    const today = new Date();
+    const expiringSoon = [];
+    const expired = [];
+    
+    contractors.forEach(contractor => {
+        if (contractor.endDate) {
+            const endDate = new Date(contractor.endDate);
+            const daysUntilExpiry = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+            
+            if (daysUntilExpiry < 0) {
+                expired.push({
+                    name: contractor.name || contractor.contractor || 'Unknown',
+                    daysExpired: Math.abs(daysUntilExpiry),
+                    value: contractor.value || 0
+                });
+            } else if (daysUntilExpiry <= 30 && daysUntilExpiry >= 0) {
+                expiringSoon.push({
+                    name: contractor.name || contractor.contractor || 'Unknown',
+                    daysUntilExpiry: daysUntilExpiry,
+                    value: contractor.value || 0
+                });
+            }
+        }
+    });
+    
+    // Show expiry alerts
+    if (expired.length > 0) {
+        const expiredMessage = expired.length === 1 
+            ? `1 contract has expired: ${expired[0].name} (${expired[0].daysExpired} days ago)`
+            : `${expired.length} contracts have expired`;
+        
+        showNotification(`⚠️ ${expiredMessage}`, 'error');
+        
+        // Log details for debugging
+        console.log('Expired contracts:', expired);
+    }
+    
+    if (expiringSoon.length > 0) {
+        const soonMessage = expiringSoon.length === 1
+            ? `1 contract expiring soon: ${expiringSoon[0].name} (${expiringSoon[0].daysUntilExpiry} days)`
+            : `${expiringSoon.length} contracts expiring within 30 days`;
+        
+        showNotification(`🔔 ${soonMessage}`, 'warning');
+        
+        // Log details for debugging
+        console.log('Contracts expiring soon:', expiringSoon);
+    }
+    
+    // Store alerts for reference
+    window.expiryAlerts = {
+        expired: expired,
+        expiringSoon: expiringSoon,
+        lastChecked: new Date().toISOString()
+    };
+}
+
 // Show notification
 function showNotification(message, type = 'info') {
     // Create notification element
     const notification = document.createElement('div');
     notification.className = `analytics-notification ${type}`;
     notification.textContent = message;
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: ${type === 'error' ? 'linear-gradient(135deg, #e74c3c, #c0392b)' : 'linear-gradient(135deg, #6e8efb, #a777e3)'};
-        color: white;
-        padding: 12px 20px;
-        border-radius: 8px;
-        font-size: 12px;
-        font-weight: 600;
-        z-index: 10000;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-        animation: slideIn 0.3s ease;
-    `;
     
+    // Add to page
     document.body.appendChild(notification);
     
-    // Remove after 3 seconds
+    // Auto remove after 5 seconds
     setTimeout(() => {
-        notification.style.animation = 'slideOut 0.3s ease';
+        notification.style.animation = 'slideOutRight 0.3s ease-out';
         setTimeout(() => {
-            notification.remove();
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
         }, 300);
-    }, 3000);
+    }, 5000);
+    
+    // Click to dismiss
+    notification.addEventListener('click', () => {
+        notification.style.animation = 'slideOutRight 0.3s ease-out';
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 300);
+    });
 }
-
-// Add animation styles
-const animationStyles = `
-    @keyframes slideIn {
-        from { transform: translateX(100%); opacity: 0; }
-        to { transform: translateX(0); opacity: 1; }
-    }
-    @keyframes slideOut {
-        from { transform: translateX(0); opacity: 1; }
-        to { transform: translateX(100%); opacity: 0; }
-    }
-`;
-
-// Add styles to head
-const styleSheet = document.createElement('style');
-styleSheet.textContent = animationStyles;
-document.head.appendChild(styleSheet);

@@ -2517,43 +2517,32 @@ text-align: center;
     animation: neuralRotate 20s linear infinite;
     pointer-events: none;
 }
-.charts-3d-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 25px;
+
+/* AI Charts Section */
+.ai-charts-section {
     margin: 40px 0;
 }
 
-.chart-3d-container {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 15px;
-    padding: 20px;
-    position: relative;
-    overflow: hidden;
-    transition: all 0.3s ease;
+.ai-charts-header {
+    margin-bottom: 20px;
 }
 
-.chart-3d-container:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 15px 40px rgba(138, 43, 226, 0.3);
-    border-color: rgba(138, 43, 226, 0.5);
-}
-
-.chart-3d-container.wide {
-    grid-column: 1 / -1;
-}
-
-.chart-3d-header {
+.ai-charts-header h3 {
+    color: #ffffff;
+    font-size: 20px;
+    margin: 0;
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin-bottom: 15px;
-    position: relative;
-    z-index: 1;
+    gap: 10px;
 }
 
-.chart-3d-header h3 {
+.ai-charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 25px;
+}
+
+.ai-charts-grid .chart-header h4 {
     color: #ffffff;
     font-size: 16px;
     margin: 0;
@@ -2562,46 +2551,78 @@ text-align: center;
     gap: 8px;
 }
 
-.chart-3d-controls {
+.ai-charts-grid .chart-header {
     display: flex;
-    gap: 8px;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
 }
 
-.chart-3d-btn {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: white;
-    width: 32px;
-    height: 32px;
-    border-radius: 6px;
+/* AI Insights Section */
+.ai-insights-section {
+    margin: 40px 0;
+}
+
+.ai-insights-header {
+    margin-bottom: 20px;
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    justify-content: center;
+}
+
+.ai-refresh-btn {
+    background: rgba(138, 43, 226, 0.2);
+    border: 1px solid rgba(138, 43, 226, 0.5);
+    color: #ffffff;
+    padding: 8px 12px;
+    border-radius: 8px;
     cursor: pointer;
     transition: all 0.3s ease;
-    font-size: 12px;
+    font-size: 14px;
 }
 
-.chart-3d-btn:hover {
-    background: rgba(138, 43, 226, 0.3);
-    border-color: rgba(138, 43, 226, 0.5);
+.ai-refresh-btn:hover {
+    background: rgba(138, 43, 226, 0.4);
+    border-color: rgba(138, 43, 226, 0.8);
     transform: translateY(-2px);
 }
 
-.chart-3d-content {
+.ai-refresh-btn:active {
+    transform: translateY(0);
+}
+
+.ai-insights-header h3 {
+    color: #ffffff;
+    font-size: 20px;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.ai-insights-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 25px;
+}
+
+.ai-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    padding: 25px;
     position: relative;
-    z-index: 1;
-    height: 300px;
+    overflow: hidden;
+    transition: all 0.3s ease;
 }
 
-.chart-3d-canvas {
-    width: 100%;
-    height: 100%;
-    border-radius: 10px;
-    background: rgba(0, 0, 0, 0.2);
+.ai-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 40px rgba(138, 43, 226, 0.3);
+    border-color: rgba(138, 43, 226, 0.5);
 }
 
-.chart-3d-container::before {
+.ai-card::before {
     content: '';
     position: absolute;
     top: -50%;
@@ -2611,6 +2632,152 @@ text-align: center;
     background: radial-gradient(circle, rgba(138, 43, 226, 0.05) 0%, transparent 70%);
     animation: neuralRotate 20s linear infinite;
     pointer-events: none;
+}
+
+.ai-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    position: relative;
+    z-index: 1;
+}
+
+.ai-card-header h4 {
+    color: #ffffff;
+    font-size: 16px;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ai-status-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #333;
+    transition: all 0.3s ease;
+}
+
+.ai-status-indicator.active {
+    background: #00ff00;
+    box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+    animation: statusPulse 2s infinite;
+}
+
+.ai-card-content {
+    position: relative;
+    z-index: 1;
+}
+
+.ai-insights-list,
+.ai-recommendations-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.ai-insight-item,
+.ai-recommendation-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    transition: all 0.3s ease;
+}
+
+.ai-insight-item:hover,
+.ai-recommendation-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateX(5px);
+}
+
+.ai-insight-icon,
+.ai-recommendation-icon {
+    font-size: 18px;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.ai-insight-text,
+.ai-recommendation-text {
+    color: #ffffff;
+    font-size: 13px;
+    line-height: 1.4;
+    flex: 1;
+}
+
+.ai-recommendation-text {
+    font-weight: 500;
+}
+
+@keyframes statusPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+@keyframes neuralRotate {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Analytics Notifications */
+.analytics-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px 20px;
+    border-radius: 10px;
+    color: #ffffff;
+    font-weight: 500;
+    font-size: 14px;
+    z-index: 10000;
+    max-width: 400px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    animation: slideInRight 0.3s ease-out;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.analytics-notification.info {
+    background: linear-gradient(135deg, rgba(52, 152, 219, 0.9), rgba(41, 128, 185, 0.9));
+}
+
+.analytics-notification.success {
+    background: linear-gradient(135deg, rgba(46, 204, 113, 0.9), rgba(39, 174, 96, 0.9));
+}
+
+.analytics-notification.warning {
+    background: linear-gradient(135deg, rgba(241, 196, 15, 0.9), rgba(243, 156, 18, 0.9));
+}
+
+.analytics-notification.error {
+    background: linear-gradient(135deg, rgba(231, 76, 60, 0.9), rgba(192, 57, 43, 0.9));
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOutRight {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
 }
 
 /* AI Analysis Grid */

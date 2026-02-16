@@ -352,116 +352,79 @@
                         </div>
                     </div>
 
-                    <!-- 3D Charts Grid -->
-                    <div class="charts-3d-grid">
-                        <!-- 3D Contractor Performance Chart -->
-                        <div class="chart-3d-container">
-                            <div class="chart-3d-header">
-                                <h3><i class="fas fa-cube"></i> 3D Contractor Performance</h3>
-                                <div class="chart-3d-controls">
-                                    <button class="chart-3d-btn" onclick="rotateChart('contractor3d')">
-                                        <i class="fas fa-sync-alt"></i>
-                                    </button>
-                                    <button class="chart-3d-btn" onclick="resetChart('contractor3d')">
-                                        <i class="fas fa-undo"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="chart-3d-content">
-                                <canvas id="contractor3dChart" class="chart-3d-canvas"></canvas>
-                            </div>
+                    <!-- AI-Powered Charts Section -->
+                    <div class="ai-charts-section">
+                        <div class="ai-charts-header">
+                            <h3><i class="fas fa-brain"></i> AI-Powered Analytics</h3>
                         </div>
-
-                        <!-- 3D Bill Flow Chart -->
-                        <div class="chart-3d-container">
-                            <div class="chart-3d-header">
-                                <h3><i class="fas fa-cube"></i> 3D Bill Flow Analysis</h3>
-                                <div class="chart-3d-controls">
-                                    <button class="chart-3d-btn" onclick="rotateChart('bill3d')">
-                                        <i class="fas fa-sync-alt"></i>
-                                    </button>
-                                    <button class="chart-3d-btn" onclick="resetChart('bill3d')">
-                                        <i class="fas fa-undo"></i>
-                                    </button>
+                        <div class="ai-charts-grid">
+                            <!-- AI Risk Prediction Chart -->
+                            <div class="chart-container">
+                                <div class="chart-header">
+                                    <h4><i class="fas fa-shield-alt"></i> AI Risk Prediction</h4>
+                                    <div class="ai-status-indicator active"></div>
+                                </div>
+                                <div class="chart-content">
+                                    <canvas id="aiRiskChart"></canvas>
                                 </div>
                             </div>
-                            <div class="chart-3d-content">
-                                <canvas id="bill3dChart" class="chart-3d-canvas"></canvas>
-                            </div>
-                        </div>
 
-                        <!-- 3D EPBG Risk Chart -->
-                        <div class="chart-3d-container">
-                            <div class="chart-3d-header">
-                                <h3><i class="fas fa-cube"></i> 3D EPBG Risk Analysis</h3>
-                                <div class="chart-3d-controls">
-                                    <button class="chart-3d-btn" onclick="rotateChart('epbg3d')">
-                                        <i class="fas fa-sync-alt"></i>
-                                    </button>
-                                    <button class="chart-3d-btn" onclick="resetChart('epbg3d')">
-                                        <i class="fas fa-undo"></i>
-                                    </button>
+                            <!-- AI Performance Forecast Chart -->
+                            <div class="chart-container">
+                                <div class="chart-header">
+                                    <h4><i class="fas fa-chart-line"></i> AI Performance Forecast</h4>
+                                    <div class="ai-status-indicator active"></div>
                                 </div>
-                            </div>
-                            <div class="chart-3d-content">
-                                <canvas id="epbg3dChart" class="chart-3d-canvas"></canvas>
-                            </div>
-                        </div>
-
-                        <!-- 3D Timeline Chart -->
-                        <div class="chart-3d-container">
-                            <div class="chart-3d-header">
-                                <h3><i class="fas fa-cube"></i> 3D Project Timeline</h3>
-                                <div class="chart-3d-controls">
-                                    <button class="chart-3d-btn" onclick="rotateChart('timeline3d')">
-                                        <i class="fas fa-sync-alt"></i>
-                                    </button>
-                                    <button class="chart-3d-btn" onclick="resetChart('timeline3d')">
-                                        <i class="fas fa-undo"></i>
-                                    </button>
+                                <div class="chart-content">
+                                    <canvas id="aiForecastChart"></canvas>
                                 </div>
-                            </div>
-                            <div class="chart-3d-content">
-                                <canvas id="timeline3dChart" class="chart-3d-canvas"></canvas>
-                            </div>
-                        </div>
-
-                        <!-- 3D Network Graph -->
-                        <div class="chart-3d-container wide">
-                            <div class="chart-3d-header">
-                                <h3><i class="fas fa-cube"></i> 3D Contractor Network</h3>
-                                <div class="chart-3d-controls">
-                                    <button class="chart-3d-btn" onclick="rotateChart('network3d')">
-                                        <i class="fas fa-sync-alt"></i>
-                                    </button>
-                                    <button class="chart-3d-btn" onclick="resetChart('network3d')">
-                                        <i class="fas fa-undo"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="chart-3d-content">
-                                <canvas id="network3dChart" class="chart-3d-canvas"></canvas>
-                            </div>
-                        </div>
-
-                        <!-- 3D Financial Dashboard -->
-                        <div class="chart-3d-container wide">
-                            <div class="chart-3d-header">
-                                <h3><i class="fas fa-cube"></i> 3D Financial Dashboard</h3>
-                                <div class="chart-3d-controls">
-                                    <button class="chart-3d-btn" onclick="rotateChart('financial3d')">
-                                        <i class="fas fa-sync-alt"></i>
-                                    </button>
-                                    <button class="chart-3d-btn" onclick="resetChart('financial3d')">
-                                        <i class="fas fa-undo"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="chart-3d-content">
-                                <canvas id="financial3dChart" class="chart-3d-canvas"></canvas>
                             </div>
                         </div>
                     </div>
+
+                    <!-- AI Insights Section -->
+                    <div class="ai-insights-section">
+                        <div class="ai-insights-header">
+                            <h3><i class="fas fa-brain"></i> AI Insights & Recommendations</h3>
+                            <button class="ai-refresh-btn" onclick="refreshAIAnalytics()" title="Refresh AI Analysis">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                        </div>
+                        <div class="ai-insights-grid">
+                            <!-- Auto-Insights -->
+                            <div class="ai-card">
+                                <div class="ai-card-header">
+                                    <h4><i class="fas fa-lightbulb"></i> Auto-Insights</h4>
+                                    <div class="ai-status-indicator active"></div>
+                                </div>
+                                <div class="ai-card-content">
+                                    <div id="aiInsights" class="ai-insights-list">
+                                        <div class="ai-insight-item">
+                                            <span class="ai-insight-icon">📊</span>
+                                            <span class="ai-insight-text">Analyzing data...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Smart Recommendations -->
+                            <div class="ai-card">
+                                <div class="ai-card-header">
+                                    <h4><i class="fas fa-robot"></i> Smart Recommendations</h4>
+                                    <div class="ai-status-indicator active"></div>
+                                </div>
+                                <div class="ai-card-content">
+                                    <div id="aiRecommendations" class="ai-recommendations-list">
+                                        <div class="ai-recommendation-item">
+                                            <span class="ai-recommendation-icon">🎯</span>
+                                            <span class="ai-recommendation-text">Generating recommendations...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </main>
@@ -480,55 +443,26 @@
     <script src="api.js"></script>
     <script src="analytics.js"></script>
     <script src="kpi-dashboard.js"></script>
+    <script src="ai-analytics.js"></script>
     <script>
-        // Wait for KPI dashboard to load, then initialize 3D charts
-        document.addEventListener('DOMContentLoaded', async function() {
-            // Wait for KPI dashboard to initialize
-            if (window.kpiDashboard) {
-                await window.kpiDashboard.init();
-            }
-            
-            // Wait a bit more for DOM to be fully ready
-            setTimeout(() => {
-                if (window.kpiDashboard && window.kpiDashboard.data && window.kpiDashboard.data.totalContractors > 0) {
-                    // Load 3D charts script after KPI data is ready
-                    const script = document.createElement('script');
-                    script.src = 'charts-3d.js';
-                    script.onload = function() {
-                        console.log('3D charts script loaded');
-                        // Initialize charts after script is loaded
-                        setTimeout(() => {
-                            if (window.charts3D) {
-                                window.charts3D.init();
-                                console.log('3D charts initialized with real data');
-                            } else {
-                                console.log('Charts3D class not found, creating new instance');
-                                window.charts3D = new Charts3D();
-                                window.charts3D.init().then(() => {
-                                    console.log('3D charts initialized with real data (async)');
-                                });
-                            }
-                        }, 500);
-                    };
-                    document.head.appendChild(script);
-                } else {
-                    console.log('KPI data not ready, loading 3D charts anyway');
-                    // Fallback: load 3D charts immediately
-                    const script = document.createElement('script');
-                    script.src = 'charts-3d.js';
-                    script.onload = function() {
-                        console.log('3D charts script loaded (fallback)');
-                        setTimeout(() => {
-                            window.charts3D = new Charts3D();
-                            window.charts3D.init().then(() => {
-                                console.log('3D charts initialized with fallback data (async)');
-                            });
-                        }, 500);
-                    };
-                    document.head.appendChild(script);
+        // AI Analytics refresh function
+        function refreshAIAnalytics() {
+            if (window.aiAnalytics) {
+                console.log('Manual AI refresh triggered');
+                window.aiAnalytics.refreshAnalysis();
+                
+                // Visual feedback
+                const btn = document.querySelector('.ai-refresh-btn');
+                if (btn) {
+                    btn.style.transform = 'rotate(360deg)';
+                    setTimeout(() => {
+                        btn.style.transform = 'rotate(0deg)';
+                    }, 500);
                 }
-            }, 2000);
-        });
+            } else {
+                console.log('AI Analytics not available');
+            }
+        }
     </script>
     <script>
         // Check authentication on page load
@@ -584,6 +518,21 @@
             languageModal.addEventListener('click', function(e) {
                 if (e.target === languageModal) {
                     languageModal.classList.remove('show');
+                }
+            });
+        }
+
+        // Logout functionality
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', async function(e) {
+                e.preventDefault();
+                try {
+                    await Auth.logout();
+                    window.location.href = 'index.html';
+                } catch (error) {
+                    console.error('Logout error:', error);
+                    showNotification('Logout failed. Please try again.', 'error');
                 }
             });
         }

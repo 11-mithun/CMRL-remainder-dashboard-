@@ -3,6 +3,9 @@ class KPIDashboard {
     constructor() {
         this.data = {};
         this.sparklines = {};
+        this.contractorDataCache = null;
+        this.lastDataLoadTime = 0;
+        this.DATA_CACHE_DURATION = 5000; // 5 seconds
         this.init();
     }
 
@@ -54,12 +57,25 @@ class KPIDashboard {
     }
 
     getContractorData() {
+        // Use cached data to prevent fluctuation
+        const now = Date.now();
+        
+        // Return cached data if still valid
+        if (this.contractorDataCache && (now - this.lastDataLoadTime) < this.DATA_CACHE_DURATION) {
+            console.log('KPI Dashboard: Using cached contractor data:', this.contractorDataCache.length, 'records');
+            return Promise.resolve(this.contractorDataCache);
+        }
+        
         // Use the same data source as analytics.js for consistency
         if (typeof contractorListAPI !== 'undefined') {
             try {
                 // Try to get data from API (same as analytics.js)
                 const data = contractorListAPI.load();
                 console.log('KPI Dashboard contractor data from API:', data.length, 'records');
+                
+                // Cache the data
+                this.contractorDataCache = data;
+                this.lastDataLoadTime = now;
                 
                 // Map API response to expected format - handle both sync and async
                 if (data && typeof data.then === 'function') {
@@ -73,6 +89,8 @@ class KPIDashboard {
                             endDate: contractor.end_date || contractor.endDate || ''
                         })) : [];
                         console.log('KPI Dashboard mapped contractor data (async):', mappedData.length, 'records');
+                        // Update cache with mapped data
+                        this.contractorDataCache = mappedData;
                         return mappedData;
                     });
                 } else {
@@ -85,10 +103,12 @@ class KPIDashboard {
                         endDate: contractor.end_date || contractor.endDate || ''
                     })) : [];
                     console.log('KPI Dashboard mapped contractor data (sync):', mappedData.length, 'records');
+                    // Update cache with mapped data
+                    this.contractorDataCache = mappedData;
                     return mappedData;
                 }
             } catch (error) {
-                console.error('Error loading contractor data from API:', error);
+                console.error('Error getting contractor data from API:', error);
             }
         }
         
@@ -225,22 +245,33 @@ class KPIDashboard {
     }
 
     updateKPIDisplay() {
-        // Update KPI values
-        this.updateKPIValue('totalContractorsKpi', this.data.totalContractors);
-        this.updateKPIValue('activeContractorsKpi', this.data.activeContractors);
-        this.updateKPIValue('portfolioValueKpi', '₹' + this.data.portfolioValue.toLocaleString());
-        this.updateKPIValue('expiringSoonKpi', this.data.expiringSoon);
-        this.updateKPIValue('dataConsistencyKpi', this.data.dataConsistency + '%');
-        this.updateKPIValue('valueUtilizationKpi', this.data.valueUtilization + '%');
-        this.updateKPIValue('totalBillsKpi', this.data.totalBills);
-        this.updateKPIValue('epbgCoverageKpi', this.data.epbgCoverage + '%');
+        // Update KPI values with null checks
+        this.updateKPIValue('totalContractorsKpi', this.data.totalContractors || 0);
+        this.updateKPIValue('activeContractorsKpi', this.data.activeContractors || 0);
+        
+        // Fix portfolioValue with proper null check
+        const portfolioValue = this.data.portfolioValue || 0;
+        this.updateKPIValue('portfolioValueKpi', '₹' + portfolioValue.toLocaleString());
+        
+        this.updateKPIValue('expiringSoonKpi', this.data.expiringSoon || 0);
+        this.updateKPIValue('dataConsistencyKpi', (this.data.dataConsistency || 0) + '%');
+        this.updateKPIValue('valueUtilizationKpi', (this.data.valueUtilization || 0) + '%');
+        
+        // Handle bills data
+        const totalBills = this.data.bills?.totalBills || this.data.totalBills || 0;
+        this.updateKPIValue('totalBillsKpi', totalBills);
+        
+        this.updateKPIValue('epbgCoverageKpi', (this.data.epbgCoverage || 0) + '%');
 
         // Update warning status for expiring soon
         const expiringCard = document.querySelector('.kpi-card.warning');
-        if (this.data.expiringSoon > 0) {
-            expiringCard?.classList.add('warning');
-        } else {
-            expiringCard?.classList.remove('warning');
+        if (expiringCard) {
+            const expiringCount = this.data.expiringSoon || 0;
+            if (expiringCount > 0) {
+                expiringCard.classList.add('alert');
+            } else {
+                expiringCard.classList.remove('alert');
+            }
         }
     }
 
@@ -392,14 +423,54 @@ class KPIDashboard {
         setInterval(() => {
             this.loadKPIData();
         }, 30000);
+    }
+
+    // Expose all data for AI analysis
+    getAllData() {
+        return {
+            contractors: this.data.contractors || [],
+            bills: this.data.bills || {},
+            epbgData: this.data.epbgData || [],
+            lastUpdated: this.data.lastUpdated || new Date().toISOString()
+        };
+    }
+
+    // Refresh AI analysis when data updates
+    async loadKPIData() {
+        const contractors = await this.getContractorData();
+        const bills = this.getBillData();
+        const epbgData = await this.getEPBGData();
         
-        // Also update 3D charts when data refreshes
-        setInterval(() => {
-            if (window.charts3D) {
-                // Refresh 3D charts with new data
-                window.charts3D.setupCharts();
-            }
-        }, 35000);
+        // Calculate KPIs from the data
+        const kpiData = {
+            totalContractors: contractors.length,
+            activeContractors: contractors.filter(c => c.status === 'Active').length,
+            portfolioValue: contractors.reduce((sum, c) => sum + (parseFloat(c.value) || 0), 0),
+            expiringSoon: contractors.filter(c => this.isExpiringSoon(c.duration || c.endDate)).length,
+            dataConsistency: this.calculateDataConsistency(contractors),
+            valueUtilization: this.calculateValueUtilization(contractors),
+            totalBills: bills.totalBills || 0,
+            epbgCoverage: this.calculateEPBGCoverage(epbgData, contractors)
+        };
+        
+        // Store both raw data and calculated KPIs
+        this.data = {
+            ...kpiData,
+            contractors: contractors,
+            bills: bills,
+            epbgData: epbgData,
+            lastUpdated: new Date().toISOString()
+        };
+        
+        this.updateKPIDisplay();
+        this.updateLastUpdatedTime();
+        
+        // Trigger AI analysis refresh if available
+        if (window.aiAnalytics) {
+            setTimeout(() => {
+                window.aiAnalytics.refreshAnalysis();
+            }, 1000);
+        }
     }
 }
 
