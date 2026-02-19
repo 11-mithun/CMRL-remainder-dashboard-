@@ -4,7 +4,7 @@ let historyIndex = -1;
 const MAX_HISTORY_SIZE = 50;
 
 // Data persistence keys
-const BILL_TRACKER_DATA_KEY = 'billTrackerData';
+const BILL_TRACKER_DATA_KEY = 'billTrackerData'; // Use simple key like contractorListData
 const BILL_TRACKER_HISTORY_KEY = 'billTrackerHistory';
 const BILL_TRACKER_HISTORY_INDEX_KEY = 'billTrackerHistoryIndex';
 const ANALYTICS_DATA_KEY = 'analyticsData'; // Add analytics key
@@ -932,12 +932,14 @@ function getTableData() {
     
     rows.forEach(row => {
         const rowData = {
-            sno: row.querySelector('.sno-input').value,
-            efile: row.querySelector('.efile-input').value,
-            contractor: row.querySelector('.contractor-input').value,
-            approvedDate: row.querySelector('.approved-date-input').value,
-            approvedAmount: row.querySelector('.approved-amount-input').value,
-            frequency: row.querySelector('.frequency-input').value
+            sno: row.querySelector('.sno-input')?.value || '',
+            efileNo: row.querySelector('.efile-no-input')?.value || '',
+            contractor: row.querySelector('.contractor-input')?.value || '',
+            startDate: row.querySelector('.start-date-input')?.value || '',
+            endDate: row.querySelector('.end-date-input')?.value || '',
+            duration: row.querySelector('.duration-input')?.value || '',
+            handleBy: row.querySelector('.handle-by-input')?.value || '',
+            frequency: row.querySelector('.frequency-select')?.value || ''
         };
         data.push(rowData);
     });
@@ -1103,6 +1105,14 @@ document.addEventListener('keydown', function(e) {
 function saveDataToStorage() {
     try {
         const tableData = getTableData();
+        
+        // Validate data before saving
+        if (tableData.length === 0) {
+            console.warn('No data to save');
+            return;
+        }
+        
+        // Simple direct save like contractorListData
         localStorage.setItem(BILL_TRACKER_DATA_KEY, JSON.stringify(tableData));
         localStorage.setItem(BILL_TRACKER_HISTORY_KEY, JSON.stringify(history));
         localStorage.setItem(BILL_TRACKER_HISTORY_INDEX_KEY, historyIndex.toString());
@@ -1110,7 +1120,16 @@ function saveDataToStorage() {
         // Also save to analytics data
         saveToAnalyticsData(tableData);
         
-        console.log('Data saved to localStorage');
+        console.log('Bill tracker data saved to localStorage:', tableData.length, 'records');
+        
+        // Trigger analytics update if on analytics page
+        if (window.location.pathname.includes('analytics.html')) {
+            setTimeout(() => {
+                if (typeof loadAnalyticsData === 'function') {
+                    loadAnalyticsData();
+                }
+            }, 200);
+        }
     } catch (error) {
         console.error('Error saving data to localStorage:', error);
     }
@@ -1118,6 +1137,7 @@ function saveDataToStorage() {
 
 function loadDataFromStorage() {
     try {
+        // Simple direct load like contractorListData
         const savedData = localStorage.getItem(BILL_TRACKER_DATA_KEY);
         const savedHistory = localStorage.getItem(BILL_TRACKER_HISTORY_KEY);
         const savedHistoryIndex = localStorage.getItem(BILL_TRACKER_HISTORY_INDEX_KEY);
@@ -1125,7 +1145,7 @@ function loadDataFromStorage() {
         if (savedData) {
             const tableData = JSON.parse(savedData);
             restoreTableFromData(tableData);
-            console.log('Data loaded from localStorage');
+            console.log('Bill tracker data loaded from localStorage:', tableData.length, 'records');
         }
         
         if (savedHistory) {
@@ -1187,31 +1207,19 @@ function restoreTableFromData(data) {
 
 function saveToAnalyticsData(tableData) {
     try {
-        // Get existing analytics data or create new
+        // Simple save to analytics for charts
         let analyticsData = localStorage.getItem(ANALYTICS_DATA_KEY);
         analyticsData = analyticsData ? JSON.parse(analyticsData) : {};
         
-        // Update bill tracker data with exact current data
+        // Update bill tracker data
         analyticsData.billTracker = {
             data: tableData,
             lastUpdated: new Date().toISOString(),
             count: tableData.length
         };
         
-        // Also save to legacy key for compatibility
-        localStorage.setItem(BILL_TRACKER_DATA_KEY, JSON.stringify(tableData));
-        
         localStorage.setItem(ANALYTICS_DATA_KEY, JSON.stringify(analyticsData));
         console.log('Bill tracker data saved to analytics:', tableData.length, 'records');
-        
-        // Trigger analytics update if on analytics page
-        if (window.location.pathname.includes('analytics.html')) {
-            setTimeout(() => {
-                if (typeof loadAnalyticsData === 'function') {
-                    loadAnalyticsData();
-                }
-            }, 100);
-        }
     } catch (error) {
         console.error('Error saving to analytics data:', error);
     }
@@ -1219,11 +1227,15 @@ function saveToAnalyticsData(tableData) {
 
 // Live Updates Functions
 function setupLiveUpdates() {
-    // Save data on any input change
+    // Save data on any input change with debounce
+    let saveTimeout;
     document.addEventListener('input', function(e) {
         if (e.target.matches('input, select')) {
-            saveDataToStorage();
-            updateTotalCount();
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(() => {
+                saveDataToStorage();
+                updateTotalCount();
+            }, 500); // Wait 500ms after typing stops
         }
     });
     
@@ -1237,19 +1249,15 @@ function setupLiveUpdates() {
         }
     });
     
-    // Listen for storage changes from other tabs/pages
-    window.addEventListener('storage', function(e) {
-        if (e.key === ANALYTICS_DATA_KEY && e.newValue) {
-            // If on analytics page, reload data when bill tracker updates
-            if (window.location.pathname.includes('analytics.html')) {
-                setTimeout(() => {
-                    if (typeof loadAnalyticsData === 'function') {
-                        loadAnalyticsData();
-                    }
-                }, 100);
-            }
-        }
+    // Save data on page unload (when switching pages)
+    window.addEventListener('beforeunload', function() {
+        saveDataToStorage();
     });
+    
+    // Periodic save every 30 seconds
+    setInterval(() => {
+        saveDataToStorage();
+    }, 30000);
 }
 
 // Override saveData function to include localStorage

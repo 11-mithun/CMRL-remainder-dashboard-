@@ -8,9 +8,15 @@ let analyticsData = {
 
 // Initialize analytics on page load
 document.addEventListener('DOMContentLoaded', function () {
-    initializeAnalytics();
-    setupEventListeners();
-    loadAnalyticsData();
+    console.log('Analytics page loaded');
+    
+    // Setup event listeners
+    setupAnalyticsEventListeners();
+    
+    // Load analytics data with delay to ensure DOM is ready
+    setTimeout(() => {
+        loadAnalyticsData();
+    }, 500);
     
     // Initialize AI Analytics integration
     setTimeout(() => {
@@ -28,6 +34,32 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }, 600000); // 10 minutes
 });
+
+// Setup analytics event listeners
+function setupAnalyticsEventListeners() {
+    // Refresh button
+    const refreshBtn = document.getElementById('refreshAnalyticsBtn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', function() {
+            console.log('Manual refresh triggered');
+            
+            // Show loading state
+            refreshBtn.classList.add('loading');
+            refreshBtn.querySelector('i').classList.add('fa-spin');
+            
+            // Force reload data
+            setTimeout(() => {
+                loadAnalyticsData();
+                
+                // Remove loading state
+                refreshBtn.classList.remove('loading');
+                refreshBtn.querySelector('i').classList.remove('fa-spin');
+                
+                showNotification('Analytics refreshed successfully', 'success');
+            }, 1000);
+        });
+    }
+}
 
 // AI Analytics Functions
 function refreshAIAnalytics() {
@@ -441,18 +473,11 @@ function getContractorDataFromDOM() {
 // Load bill tracker data
 async function loadBillData() {
     try {
-        // Try to get from localStorage first
-        const savedData = localStorage.getItem('analyticsData');
-        if (savedData) {
-            const analyticsData = JSON.parse(savedData);
-            const billData = analyticsData.billTracker?.data || [];
-            console.log('Bill tracker data loaded from localStorage:', billData.length, 'records');
-            return billData;
-        }
-        
-        // Fallback to empty array
-        console.log('No bill tracker data found, using empty array');
-        return [];
+        // Use simple localStorage like contractorListData
+        const savedData = localStorage.getItem('billTrackerData');
+        const data = savedData ? JSON.parse(savedData) : [];
+        console.log('Bill tracker data loaded from localStorage:', data.length, 'records');
+        return data;
     } catch (error) {
         console.error('Error loading bill data:', error);
         return [];
@@ -673,22 +698,30 @@ function updateChangeIndicators() {
     }
 }
 
-// Update charts
+// Update charts with proper timing
 function updateCharts(data) {
-    updateContractorTrendsChart(data);
-    updateValueDistributionChart(data);
-    updateGSTBreakdownChart(data);
-    updateDurationAnalysisChart(data);
-    // Add Bill Tracker specific charts - only if functions exist
-    if (typeof updateBillTrendsChart === 'function') {
-        updateBillTrendsChart(data);
-    }
-    if (typeof updateFrequencyDistributionChart === 'function') {
-        updateFrequencyDistributionChart(data);
-    }
-    if (typeof updateBillTrackerKPIs === 'function') {
-        updateBillTrackerKPIs(data);
-    }
+    console.log('Updating charts with data:', data);
+    
+    // Add delay to ensure DOM is ready
+    setTimeout(() => {
+        updateContractorTrendsChart(data);
+        updateValueDistributionChart(data);
+        updateGSTBreakdownChart(data);
+        updateDurationAnalysisChart(data);
+        
+        // Add Bill Tracker specific charts - only if functions exist
+        if (typeof updateBillTrendsChart === 'function') {
+            updateBillTrendsChart(data);
+        }
+        if (typeof updateFrequencyDistributionChart === 'function') {
+            updateFrequencyDistributionChart(data);
+        }
+        if (typeof updateBillTrackerKPIs === 'function') {
+            updateBillTrackerKPIs(data);
+        }
+        
+        console.log('All charts updated successfully');
+    }, 100); // 100ms delay
 }
 
 // Update contractor trends chart
@@ -1388,11 +1421,15 @@ function updateFrequencyDistributionChart(data) {
 
 function updateBillTrackerKPIs(data) {
     const billData = data.billTracker || [];
+    console.log('Updating Bill Tracker KPIs with data:', billData.length, 'records');
     
     // Update Total Bills KPI
     const totalBillsKpi = document.getElementById('totalBillsKpi');
     if (totalBillsKpi) {
         totalBillsKpi.textContent = billData.length;
+        console.log('Total Bills KPI updated to:', billData.length);
+    } else {
+        console.warn('totalBillsKpi element not found');
     }
     
     // Update Bill Frequency KPI
@@ -1400,6 +1437,9 @@ function updateBillTrackerKPIs(data) {
     if (billFrequencyKpi) {
         const avgFrequency = calculateAverageFrequency(billData);
         billFrequencyKpi.textContent = avgFrequency;
+        console.log('Bill Frequency KPI updated to:', avgFrequency);
+    } else {
+        console.warn('billFrequencyKpi element not found');
     }
     
     // Update Overdue Bills KPI
@@ -1407,6 +1447,9 @@ function updateBillTrackerKPIs(data) {
     if (overdueBillsKpi) {
         const overdueCount = calculateOverdueBills(billData);
         overdueBillsKpi.textContent = overdueCount;
+        console.log('Overdue Bills KPI updated to:', overdueCount);
+    } else {
+        console.warn('overdueBillsKpi element not found');
     }
     
     // Update sparkline charts
