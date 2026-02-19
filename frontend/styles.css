@@ -1679,6 +1679,11 @@ text-align: center;
 .data-table th:nth-child(6),
 .data-table td:nth-child(6) {
     width: 200px;
+    text-align: center;
+    vertical-align: middle;
+    padding: 8px 12px !important;
+    border-radius: 6px !important;
+    background-color: rgba(74, 144, 226, 0.05) !important;
 }
 
 .data-table th:nth-child(7),
@@ -5561,6 +5566,249 @@ body.read-only .search-input {
     .data-table {
         font-size: 11px;
     }
+}
+
+/* Duration Color Coding Styles */
+.duration-display {
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 4px;
+    text-align: center;
+    font-size: 12px;
+    transition: all 0.3s ease;
+    cursor: default;
+    position: relative;
+}
+
+/* Future dates - Blue */
+.duration-future {
+    background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+    color: #1565c0;
+    border: 1px solid #90caf9;
+}
+
+.duration-future:hover {
+    background: linear-gradient(135deg, #bbdefb, #90caf9);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(21, 101, 192, 0.3);
+}
+
+/* Today - Purple */
+.duration-today {
+    background: linear-gradient(135deg, #f3e5f5, #e1bee7);
+    color: #7b1fa2;
+    border: 1px solid #ce93d8;
+    font-weight: 700;
+    animation: pulse-today 2s infinite;
+}
+
+@keyframes pulse-today {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+/* Critical (1-30 days) - Red */
+.duration-critical {
+    background: linear-gradient(135deg, #ffebee, #ffcdd2);
+    color: #c62828;
+    border: 1px solid #ef9a9a;
+    font-weight: 700;
+    animation: blink-critical 3s infinite;
+}
+
+@keyframes blink-critical {
+    0%, 50%, 100% { opacity: 1; }
+    25%, 75% { opacity: 0.7; }
+}
+
+.duration-critical:hover {
+    background: linear-gradient(135deg, #ffcdd2, #ef9a9a);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(198, 40, 40, 0.4);
+}
+
+/* Warning (31-60 days) - Yellow/Orange */
+.duration-warning {
+    background: linear-gradient(135deg, #fff8e1, #ffecb3);
+    color: #f57c00;
+    border: 1px solid #ffe082;
+    font-weight: 600;
+}
+
+.duration-warning:hover {
+    background: linear-gradient(135deg, #ffecb3, #ffe082);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(245, 124, 0, 0.3);
+}
+
+/* Caution (61-90 days) - Light Green */
+.duration-caution {
+    background: linear-gradient(135deg, #e8f5e8, #c8e6c9);
+    color: #2e7d32;
+    border: 1px solid #a5d6a7;
+}
+
+.duration-caution:hover {
+    background: linear-gradient(135deg, #c8e6c9, #a5d6a7);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(46, 125, 50, 0.3);
+}
+
+/* Normal (91-180 days) - Green */
+.duration-normal {
+    background: linear-gradient(135deg, #e8f5e8, #66bb6a);
+    color: #1b5e20;
+    border: 1px solid #4caf50;
+}
+
+.duration-normal:hover {
+    background: linear-gradient(135deg, #66bb6a, #4caf50);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(27, 94, 32, 0.3);
+}
+
+/* Extended (181-365 days) - Blue */
+.duration-extended {
+    background: linear-gradient(135deg, #e3f2fd, #64b5f6);
+    color: #0d47a1;
+    border: 1px solid #42a5f5;
+}
+
+.duration-extended:hover {
+    background: linear-gradient(135deg, #64b5f6, #42a5f5);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(13, 71, 161, 0.3);
+}
+
+/* Very Old (365+ days) - Purple */
+.duration-very-old {
+    background: linear-gradient(135deg, #f3e5f5, #ab47bc);
+    color: #4a148c;
+    border: 1px solid #9c27b0;
+    font-weight: 600;
+}
+
+.duration-very-old:hover {
+    background: linear-gradient(135deg, #ab47bc, #9c27b0);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(74, 20, 140, 0.3);
+}
+
+/* Duration tooltip styles */
+.duration-display[title] {
+    position: relative;
+}
+
+.duration-display[title]:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: normal;
+    white-space: pre-line;
+    z-index: 1000;
+    min-width: 200px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Cell highlighting for keyboard navigation */
+.cell-highlight {
+    background-color: rgba(74, 144, 226, 0.1) !important;
+    border: 1px solid #4a90e2 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.duration-critical::before { background: #c62828; }
+.duration-warning::before { background: #f57c00; }
+.duration-caution::before { background: #2e7d32; }
+.duration-normal::before { background: #1b5e20; }
+.duration-extended::before { background: #0d47a1; }
+.duration-very-old::before { background: #4a148c; }
+.duration-future::before { background: #1565c0; }
+.duration-today::before { background: #7b1fa2; }
+
+/* Responsive adjustments for duration display */
+@media (max-width: 768px) {
+    .duration-display {
+        font-size: 10px;
+        padding: 2px 4px;
+    }
+    
+    .duration-display[title]:hover::after {
+        font-size: 10px;
+        min-width: 150px;
+        padding: 6px 8px;
+    }
+}
+
+/* Duration Styles for Bill Tracker */
+.duration-safe {
+    color: #28a745 !important;
+    font-weight: 600;
+}
+
+.duration-left {
+    color: #dc3545 !important;
+    font-weight: 700;
+}
+
+.duration-display {
+    font-weight: 600;
+    transition: all 0.3s ease;
+    cursor: default;
+}
+
+.duration-display:hover {
+    transform: scale(1.05);
+}
+
+/* Real-time status indicator */
+#realTimeStatus {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    background: #28a745;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+/* Duration Color Coding Styles */
+.duration-critical {
+    background: linear-gradient(135deg, #ffebee, #ffcdd2);
+    color: #c62828;
+    border: 1px solid #ef9a9a;
+    font-weight: 700;
+    animation: blink-critical 3s infinite;
+}
+
+.duration-warning {
+    background: linear-gradient(135deg, #fff8e1, #ffecb3);
+    color: #f57c00;
+    border: 1px solid #ffe082;
+    font-weight: 600;
+}
+
+.duration-normal {
+    background: linear-gradient(135deg, #e8f5e8, #66bb6a);
+    color: #1b5e20;
+    border: 1px solid #4caf50;
+}
+
+@keyframes blink-critical {
+    0%, 50%, 100% { opacity: 1; }
+    25%, 75% { opacity: 0.7; }
 }
 
 /* Landscape Orientation for Phones */

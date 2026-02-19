@@ -80,6 +80,9 @@
                     
                     <!-- Header Action Buttons -->
                     <div class="header-actions">
+                        <button class="header-action-btn import-btn" id="importBtn" title="Import">
+                            <i class="fas fa-upload"></i>
+                        </button>
                         <button class="header-action-btn save-btn" id="saveBtn" title="Save">
                             <i class="fas fa-save"></i>
                         </button>
@@ -151,17 +154,13 @@
                             <thead>
                                 <tr>
                                     <th>S.NO</th>
-                                    <th>E-FILE</th>
+                                    <th>EFILE NO</th>
                                     <th>CONTRACTOR</th>
-                                    <th>APPROVED DATE</th>
-                                    <th>APPROVED AMOUNT</th>
-                                    <th>BILL FREQUENCY</th>
-                                    <th>BILL DATE</th>
-                                    <th>BILL DUE DATE</th>
-                                    <th>BILL PAID DATE</th>
-                                    <th>PAID AMOUNT</th>
-                                    <th>ATTACHMENT</th>
-                                    <th>ACTION</th>
+                                    <th>START DATE</th>
+                                    <th>END DATE</th>
+                                    <th>DURATION</th>
+                                    <th>HANDLE BY</th>
+                                    <th>FREQUENCY</th>
                                 </tr>
                             </thead>
                             <tbody id="tableBody">
@@ -476,6 +475,9 @@
             });
         }
     </script>
+    
+    <!-- Hidden file input for Excel import -->
+    <input type="file" id="excelFileInput" accept=".xlsx,.xls,.csv" style="display: none;">
 </body>
 
 </html>
