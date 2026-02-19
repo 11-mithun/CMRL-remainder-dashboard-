@@ -212,8 +212,17 @@ function showAuditMenu(e, element) {
     }
 }
 
-// Initialize on page load
-document.addEventListener('DOMContentLoaded', function () {
+// Initialize everything when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize table filters
+    initializeTableFilters();
+    
+    // Initialize bulk operations
+    initializeBulkOperations();
+    
+    // Setup audit trail context menu
+    setupAuditTrailContextMenu();
+    
     // Add refresh warning
     window.addEventListener('beforeunload', function (e) {
         const hasUnsavedChanges = document.getElementById('tableBody').children.length > 0;
@@ -228,6 +237,7 @@ document.addEventListener('DOMContentLoaded', function () {
     setupEventListeners();
     updateTotalCount();
     setupMobileMenu();
+    setupKeyboardShortcuts(); // Add keyboard shortcuts
     setupArrowKeyNavigation(); // Add arrow key navigation
 
     // Check for duration warnings after data loads
@@ -258,6 +268,32 @@ document.addEventListener('DOMContentLoaded', function () {
         console.log('Data sync event received');
     });
 });
+
+// Setup keyboard shortcuts for Ctrl+Z and Ctrl+Y
+function setupKeyboardShortcuts() {
+    document.addEventListener('keydown', function(e) {
+        // Ctrl+Z for undo
+        if (e.ctrlKey && e.key === 'z') {
+            e.preventDefault();
+            undo();
+            return;
+        }
+        
+        // Ctrl+Y for redo
+        if (e.ctrlKey && e.key === 'y') {
+            e.preventDefault();
+            redo();
+            return;
+        }
+        
+        // Also support Ctrl+Shift+Z for redo (alternative)
+        if (e.ctrlKey && e.shiftKey && e.key === 'z') {
+            e.preventDefault();
+            redo();
+            return;
+        }
+    });
+}
 
 // Setup event listeners
 function setupEventListeners() {
@@ -408,21 +444,6 @@ function getContractorValue(row) {
 function addRow() {
     return addRowWithCheckbox();
 }
-
-// Initialize everything when DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize table filters
-    initializeTableFilters();
-    
-    // Initialize bulk operations
-    initializeBulkOperations();
-    
-    // Setup audit trail context menu
-    setupAuditTrailContextMenu();
-    
-    // Initialize other existing functionality
-    // (existing initialization code would go here)
-});
 
 // Update bulk operations to work with S.NO checkboxes (no select all)
 function initializeBulkOperations() {
@@ -626,26 +647,8 @@ function startRealTimeDurationUpdates() {
 
 // Create real-time status indicator
 function createRealTimeStatusIndicator() {
-    const header = document.querySelector('.header-left');
-    if (!header) return;
-    
-    const statusIndicator = document.createElement('div');
-    statusIndicator.id = 'realTimeStatus';
-    statusIndicator.style.cssText = `
-        font-size: 12px;
-        color: rgba(255, 255, 255, 0.6);
-        margin-top: 4px;
-        display: flex;
-        align-items: center;
-        gap: 5px;
-    `;
-    
-    statusIndicator.innerHTML = `
-        <i class="fas fa-clock" style="font-size: 10px;"></i>
-        <span id="lastUpdateText">Real-time updates active</span>
-    `;
-    
-    header.appendChild(statusIndicator);
+    // Disabled - removed "Last updated" text
+    return;
 }
 
 // Update real-time status indicator
@@ -1938,7 +1941,7 @@ function addRowWithCheckbox() {
     return row;
 }
 
-// ============= TABLE FILTERS - CHECKBOX ONLY =============
+// ============= TABLE FILTERS - CLEAN REBUILD =============
 
 // Initialize table filters dropdown
 function initializeTableFilters() {
@@ -1978,7 +1981,7 @@ function initializeTableFilters() {
     // Apply filters button
     if (applyFiltersBtn) {
         applyFiltersBtn.addEventListener('click', function() {
-            applyFilters();
+            applyNewFilters();
             filterDropdownMenu.classList.remove('show');
             filterDropdownBtn.classList.remove('active');
         });
@@ -1987,77 +1990,271 @@ function initializeTableFilters() {
     // Clear filters button
     if (clearFiltersBtn) {
         clearFiltersBtn.addEventListener('click', function() {
-            clearAllFilters();
+            clearNewFilters();
             filterDropdownMenu.classList.remove('show');
             filterDropdownBtn.classList.remove('active');
         });
     }
 }
 
-// Apply filters to table rows (checkbox only)
-function applyFilters() {
-    const filters = getActiveFilters();
+// NEW: Apply filters with clean logic - CORRECTED LOGIC
+function applyNewFilters() {
+    console.log('=== DEBUGGING FILTER APPLICATION ===');
+    
+    const selectedColumns = getSelectedColumns();
     const tbody = document.getElementById('tableBody');
     const rows = tbody.querySelectorAll('tr');
     
-    rows.forEach(row => {
-        let shouldShow = true;
+    console.log('1. Selected columns:', selectedColumns);
+    console.log('2. Total rows found:', rows.length);
+    
+    // Get column indices for selected columns
+    const columnIndices = getColumnIndices(selectedColumns);
+    console.log('3. Column indices:', columnIndices);
+    
+    let visibleRowCount = 0;
+    let hiddenRowCount = 0;
+    
+    rows.forEach((row, index) => {
+        const checkbox = row.querySelector('.sno-checkbox');
+        const isChecked = checkbox && checkbox.checked;
         
-        // If no filters selected, show all rows
-        if (filters.length === 0) {
-            row.style.display = '';
+        console.log(`4. Row ${index}: checkbox exists = ${!!checkbox}, checked = ${isChecked}`);
+        
+        // CORRECTED LOGIC: If no columns selected, show all UNCHECKED rows with all columns
+        if (selectedColumns.length === 0) {
+            if (!isChecked) {
+                console.log(`5. Row ${index}: No columns selected, row UNCHECKED - showing all`);
+                showAllRowCells(row);
+                row.style.display = '';
+                visibleRowCount++;
+            } else {
+                console.log(`6. Row ${index}: No columns selected, row CHECKED - hiding`);
+                row.style.display = 'none';
+                hiddenRowCount++;
+            }
             return;
         }
         
-        // Check each filter - show row if ANY filter matches (OR logic)
-        shouldShow = filters.some(column => {
-            const cellValue = getCellValue(row, column);
-            return cellValue && cellValue.trim() !== '';
-        });
-        
-        // Show/hide row
-        row.style.display = shouldShow ? '' : 'none';
-    });
-    
-    // Update total count to show only visible rows
-    updateVisibleRowCount();
-    
-    // Show filter status
-    if (filters.length > 0) {
-        showNotification(`${filters.length} column(s) filtered`, 'success');
-    }
-}
-
-// Get active filters (checkbox only)
-function getActiveFilters() {
-    const filters = [];
-    
-    document.querySelectorAll('.filter-checkbox:checked').forEach(checkbox => {
-        const column = checkbox.dataset.column;
-        if (column) {
-            filters.push(column);
+        // CORRECTED LOGIC: If columns selected, show only UNCHECKED rows with selected columns
+        if (!isChecked) {
+            console.log(`7. Row ${index}: Columns selected, row UNCHECKED - showing selected columns`);
+            row.style.display = '';
+            hideAllRowCells(row);
+            showSelectedRowCells(row, columnIndices);
+            visibleRowCount++;
+        } else {
+            console.log(`8. Row ${index}: Columns selected, row CHECKED - hiding`);
+            row.style.display = 'none';
+            hiddenRowCount++;
         }
     });
     
-    return filters;
+    // Show/hide table headers based on selected columns
+    updateTableHeaders(selectedColumns);
+    
+    console.log('9. Final counts - Visible:', visibleRowCount, 'Hidden:', hiddenRowCount);
+    console.log('=== DEBUGGING COMPLETE ===');
+    
+    // Update status
+    updateFilterStatus(selectedColumns.length > 0);
 }
 
-// Clear all filters (checkbox only)
-function clearAllFilters() {
-    // Uncheck all checkboxes
+// NEW: Clear all filters
+function clearNewFilters() {
+    // Uncheck all filter checkboxes
     document.querySelectorAll('.filter-checkbox').forEach(checkbox => {
         checkbox.checked = false;
     });
     
-    // Show all rows
+    // Show all rows and all cells
     const tbody = document.getElementById('tableBody');
     const rows = tbody.querySelectorAll('tr');
-    rows.forEach(row => {
+    
+    rows.forEach((row, index) => {
+        showAllRowCells(row);
         row.style.display = '';
     });
     
-    updateTotalCount();
+    // Show all headers
+    updateTableHeaders([]);
+    
+    updateFilterStatus(false);
     showNotification('All filters cleared', 'info');
+}
+
+// Show/hide table headers based on selected columns
+function updateTableHeaders(selectedColumns) {
+    const table = document.querySelector('.data-table');
+    if (!table) return;
+    
+    const headers = table.querySelectorAll('th');
+    const columnMap = {
+        'sno': 0,
+        'efile': 1, 
+        'contractor': 2,
+        'description': 3,
+        'value': 4,
+        'gst': 5,
+        'startDate': 6,
+        'endDate': 7,
+        'duration': 8,
+        'attachment': 9,
+        'action': 10
+    };
+    
+    // If no columns selected, show all headers
+    if (selectedColumns.length === 0) {
+        headers.forEach(header => {
+            header.style.display = '';
+        });
+        return;
+    }
+    
+    // Hide all headers first
+    headers.forEach(header => {
+        header.style.display = 'none';
+    });
+    
+    // Show only selected column headers
+    selectedColumns.forEach(columnName => {
+        const index = columnMap[columnName];
+        if (index !== undefined && headers[index]) {
+            headers[index].style.display = '';
+        }
+    });
+    
+    // Always show S.NO and ACTION columns for usability
+    if (headers[0]) headers[0].style.display = ''; // S.NO
+    if (headers[10]) headers[10].style.display = ''; // ACTION
+}
+
+// Helper: Get selected column names
+function getSelectedColumns() {
+    const selectedColumns = [];
+    const allFilterCheckboxes = document.querySelectorAll('.filter-checkbox');
+    
+    console.log('   getSelectedColumns: Total filter checkboxes found:', allFilterCheckboxes.length);
+    
+    allFilterCheckboxes.forEach((checkbox, index) => {
+        console.log(`   Filter ${index}: ${checkbox.dataset.column} = ${checkbox.checked}`);
+        if (checkbox.checked) {
+            selectedColumns.push(checkbox.dataset.column);
+        }
+    });
+    
+    console.log('   getSelectedColumns: Returning:', selectedColumns);
+    return selectedColumns;
+}
+
+// Helper: Get column indices (0-based)
+function getColumnIndices(columnNames) {
+    const columnMap = {
+        'sno': 0,
+        'efile': 1, 
+        'contractor': 2,
+        'description': 3,
+        'value': 4,
+        'gst': 5,
+        'startDate': 6,
+        'endDate': 7,
+        'duration': 8,
+        'attachment': 9,
+        'action': 10
+    };
+    
+    return columnNames.map(name => columnMap[name]).filter(index => index !== undefined);
+}
+
+// Helper: Show all cells in a row
+function showAllRowCells(row) {
+    const cells = row.querySelectorAll('td');
+    cells.forEach(cell => {
+        cell.style.display = '';
+    });
+}
+
+// Helper: Hide all cells in a row
+function hideAllRowCells(row) {
+    const cells = row.querySelectorAll('td');
+    cells.forEach(cell => {
+        cell.style.display = 'none';
+    });
+}
+
+// Helper: Show selected cells in a row
+function showSelectedRowCells(row, columnIndices) {
+    const cells = row.querySelectorAll('td');
+    console.log(`   showSelectedRowCells: Total cells = ${cells.length}, indices to show = ${columnIndices}`);
+    
+    // Always show S.NO (index 0) and ACTION (index 10) columns
+    if (cells[0]) cells[0].style.display = ''; // S.NO
+    if (cells[10]) cells[10].style.display = ''; // ACTION
+    
+    // Show selected columns
+    columnIndices.forEach(index => {
+        if (cells[index]) {
+            cells[index].style.display = '';
+            console.log(`   Showing cell ${index}: ${cells[index].textContent.substring(0, 20)}`);
+        } else {
+            console.log(`   ERROR: Cell ${index} does not exist!`);
+        }
+    });
+}
+
+// OLD FUNCTIONS REMOVED - CLEAN REBUILD COMPLETE
+
+// Test function to verify filtering works
+function testFiltering() {
+    // Test 1: Check if we can find rows and checkboxes
+    const tbody = document.getElementById('tableBody');
+    const rows = tbody.querySelectorAll('tr');
+    const checkboxes = tbody.querySelectorAll('.sno-checkbox');
+    
+    console.log('Found rows:', rows.length);
+    console.log('Found checkboxes:', checkboxes.length);
+    
+    // Test 2: Check checkbox states
+    checkboxes.forEach((checkbox, index) => {
+        console.log(`Checkbox ${index}: checked = ${checkbox.checked}`);
+    });
+    
+    // Test 3: Check filter checkboxes
+    const filterCheckboxes = document.querySelectorAll('.filter-checkbox');
+    console.log('Found filter checkboxes:', filterCheckboxes.length);
+    
+    filterCheckboxes.forEach((checkbox, index) => {
+        console.log(`Filter ${index}: ${checkbox.dataset.column} = ${checkbox.checked}`);
+    });
+    
+    console.log('=== TESTING COMPLETE ===');
+}
+
+// Make test function available globally for debugging
+window.testFiltering = testFiltering;
+
+// Update filter status UI
+function updateFilterStatus(isFiltered) {
+    const filterBtn = document.getElementById('filterDropdownBtn');
+    const totalBadge = document.getElementById('totalBadge');
+    
+    if (isFiltered) {
+        if (filterBtn) {
+            filterBtn.classList.add('active');
+        }
+        // Count visible rows and unchecked rows
+        const tbody = document.getElementById('tableBody');
+        const visibleRows = tbody.querySelectorAll('tr:not([style*="display: none"])').length;
+        const uncheckedRows = tbody.querySelectorAll('.sno-checkbox:not(:checked)').length;
+        const selectedColumns = document.querySelectorAll('.filter-checkbox:checked').length;
+        showNotification(`Filters applied: ${uncheckedRows} rows unchecked, ${selectedColumns} columns, ${visibleRows} rows visible`, 'success');
+    } else {
+        if (filterBtn) {
+            filterBtn.classList.remove('active');
+        }
+    }
+    
+    updateTotalCount();
 }
 
 // Show notification (helper function)
@@ -2667,6 +2864,7 @@ function undo() {
     if (historyIndex > 0) {
         historyIndex--;
         restoreState(history[historyIndex]);
+        updateTotalCount(); // Fix: Update count after undo
         updateUndoRedoButtons();
     }
 }
@@ -2676,6 +2874,7 @@ function redo() {
     if (historyIndex < history.length - 1) {
         historyIndex++;
         restoreState(history[historyIndex]);
+        updateTotalCount(); // Fix: Update count after redo
         updateUndoRedoButtons();
     }
 }

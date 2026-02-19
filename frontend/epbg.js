@@ -14,12 +14,40 @@ document.addEventListener('DOMContentLoaded', function () {
     setupEventListeners();
     updateTotalCount();
     setupMobileMenu();
+    setupKeyboardShortcuts(); // Add keyboard shortcuts
     setupArrowKeyNavigation(); // Add arrow key navigation
 });
+
+// Setup keyboard shortcuts for Ctrl+Z and Ctrl+Y
+function setupKeyboardShortcuts() {
+    document.addEventListener('keydown', function(e) {
+        // Ctrl+Z for undo
+        if (e.ctrlKey && e.key === 'z') {
+            e.preventDefault();
+            undo();
+            return;
+        }
+        
+        // Ctrl+Y for redo
+        if (e.ctrlKey && e.key === 'y') {
+            e.preventDefault();
+            redo();
+            return;
+        }
+        
+        // Also support Ctrl+Shift+Z for redo (alternative)
+        if (e.ctrlKey && e.shiftKey && e.key === 'z') {
+            e.preventDefault();
+            redo();
+            return;
+        }
+    });
+}
 
 // Setup event listeners
 function setupEventListeners() {
     document.getElementById('addRowBtn').addEventListener('click', addRow);
+    document.getElementById('importBtn').addEventListener('click', importFromExcel);
     document.getElementById('saveBtn').addEventListener('click', saveData);
     document.getElementById('refreshBtn').addEventListener('click', refreshPage);
     document.getElementById('printBtn').addEventListener('click', printTable);
@@ -972,6 +1000,218 @@ function printTable() {
     }, 250);
 }
 
+// Import from Excel
+function importFromExcel() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.xlsx,.xls';
+    
+    input.onchange = function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+                
+                // Skip header row and process data
+                const dataRows = jsonData.slice(1);
+                
+                if (dataRows.length === 0) {
+                    showNotification('No data found in Excel file', 'error');
+                    return;
+                }
+                
+                // Clear existing data
+                const tbody = document.getElementById('tableBody');
+                tbody.innerHTML = '';
+                rowCounter = 0;
+                
+                // Process each row
+                dataRows.forEach((row, index) => {
+                    if (row.length >= 10 && row.some(cell => cell !== undefined && cell !== '')) {
+                        addRowFromExcel(row);
+                    }
+                });
+                
+                saveState();
+                updateTotalCount();
+                showNotification(`Successfully imported ${dataRows.length} rows from Excel`, 'success');
+                
+            } catch (error) {
+                console.error('Error importing Excel:', error);
+                showNotification('Error importing Excel file. Please check the format.', 'error');
+            }
+        };
+        
+        reader.readAsArrayBuffer(file);
+    };
+    
+    input.click();
+}
+
+// Add row from Excel data
+function addRowFromExcel(data) {
+    const tbody = document.getElementById('tableBody');
+    const row = document.createElement('tr');
+    rowCounter++;
+    
+    // Map Excel columns to table fields
+    const [
+        sno,
+        contractor,
+        poNo,
+        bgNo,
+        bgDate,
+        bgAmount,
+        bgValidity,
+        gemBid,
+        refEfile,
+        attachment,
+        bgAttachment
+    ] = data;
+    
+    row.innerHTML = `
+        <td>
+            <input type="text" class="sno-input" value="${sno || rowCounter}" readonly>
+        </td>
+        <td>
+            <input type="text" class="contractor-input" value="${contractor || ''}" placeholder="Enter Contractor">
+            <a href="#" class="contractor-link" style="display: none;" target="_blank"></a>
+        </td>
+        <td>
+            <input type="text" class="po-no-input" value="${poNo || ''}" placeholder="Enter P.O No">
+        </td>
+        <td>
+            <input type="text" class="bg-no-input" value="${bgNo || ''}" placeholder="Enter BG No">
+            <a href="#" class="bg-link" style="display: none;" target="_blank"></a>
+        </td>
+        <td>
+            <input type="date" class="bg-date-input" value="${bgDate || ''}">
+        </td>
+        <td>
+            <input type="text" class="bg-amount-input" value="${bgAmount || ''}" placeholder="Enter BG Amount">
+        </td>
+        <td>
+            <input type="text" class="bg-validity-input" value="${bgValidity || ''}" placeholder="Enter BG Validity">
+        </td>
+        <td>
+            <input type="text" class="gem-bid-input" value="${gemBid || ''}" placeholder="Enter GeM Bid No">
+        </td>
+        <td>
+            <input type="text" class="ref-efile-input" value="${refEfile || ''}" placeholder="Enter Ref Efile No">
+        </td>
+        <td>
+            <div class="attachment-cell">
+                ${attachment ? `<span class="file-name">${attachment}</span>` : '<input type="file" class="attachment-input" accept=".pdf,.doc,.docx">'}
+                <button class="view-btn" onclick="viewAttachment(this)" title="View Attachment" style="display: ${attachment ? 'inline-block' : 'none'};}">
+                    <i class="fas fa-eye"></i>
+                </button>
+                <button class="delete-btn" onclick="deleteAttachment(this)" title="Delete Attachment" style="display: ${attachment ? 'inline-block' : 'none'};}">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </td>
+        <td>
+            <div class="attachment-cell">
+                ${bgAttachment ? `<span class="file-name">${bgAttachment}</span>` : '<input type="file" class="bg-attachment-input" accept=".pdf,.doc,.docx">'}
+                <button class="view-btn" onclick="viewBGAttachment(this)" title="View BG Attachment" style="display: ${bgAttachment ? 'inline-block' : 'none'};}">
+                    <i class="fas fa-eye"></i>
+                </button>
+                <button class="delete-btn" onclick="deleteBGAttachment(this)" title="Delete BG Attachment" style="display: ${bgAttachment ? 'inline-block' : 'none'};}">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </td>
+        <td>
+            <button class="action-btn edit-btn" onclick="editRow(this)" title="Edit">
+                <i class="fas fa-edit"></i>
+            </button>
+            <button class="action-btn delete-btn" onclick="deleteRow(this)" title="Delete">
+                <i class="fas fa-trash"></i>
+            </button>
+        </td>
+    `;
+    
+    tbody.appendChild(row);
+    
+    // Setup event listeners for the new row
+    setupRowEventListeners(row);
+}
+
+// Setup event listeners for a row
+function setupRowEventListeners(row) {
+    // Add input event listeners for auto-save
+    const inputs = row.querySelectorAll('input[type="text"');
+    inputs.forEach(input => {
+        input.addEventListener('input', function() {
+            saveState();
+        });
+    });
+    
+    // Add file input event listeners
+    const attachmentInput = row.querySelector('.attachment-input');
+    if (attachmentInput) {
+        attachmentInput.addEventListener('change', function(e) {
+            handleFileSelect(e.target, 'attachment');
+        });
+    }
+    
+    const bgAttachmentInput = row.querySelector('.bg-attachment-input');
+    if (bgAttachmentInput) {
+        bgAttachmentInput.addEventListener('change', function(e) {
+            handleFileSelect(e.target, 'bg-attachment');
+        });
+    }
+}
+
+// Show notification helper
+function showNotification(message, type = 'info') {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+        <span>${message}</span>
+        <button class="notification-close" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    
+    // Add styles
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${type === 'success' ? 'linear-gradient(135deg, #2ecc71, #27ae60)' : type === 'error' ? 'linear-gradient(135deg, #e74c3c, #c0392b)' : 'linear-gradient(135deg, #3498db, #2980b9)'};
+        color: white;
+        padding: 15px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 14px;
+        max-width: 400px;
+        animation: slideIn 0.3s ease-out;
+    `;
+    
+    // Add to page
+    document.body.appendChild(notification);
+    
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.remove();
+        }
+    }, 5000);
+}
+
 // Export to Excel
 function exportToExcel() {
     const tbody = document.getElementById('tableBody');
@@ -1350,6 +1590,7 @@ function undo() {
     if (historyIndex > 0) {
         historyIndex--;
         restoreState(history[historyIndex]);
+        updateTotalCount(); // Fix: Update count after undo
         updateUndoRedoButtons();
     }
 }
@@ -1359,6 +1600,7 @@ function redo() {
     if (historyIndex < history.length - 1) {
         historyIndex++;
         restoreState(history[historyIndex]);
+        updateTotalCount(); // Fix: Update count after redo
         updateUndoRedoButtons();
     }
 }

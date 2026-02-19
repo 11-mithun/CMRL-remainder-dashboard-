@@ -29,6 +29,179 @@ document.addEventListener('DOMContentLoaded', function () {
     }, 600000); // 10 minutes
 });
 
+// AI Analytics Functions
+function refreshAIAnalytics() {
+    console.log('Refreshing AI Analytics...');
+    
+    // Show loading state
+    const aiStatusIndicators = document.querySelectorAll('.ai-status-indicator');
+    aiStatusIndicators.forEach(indicator => {
+        indicator.classList.add('loading');
+        indicator.classList.remove('active');
+    });
+    
+    // Simulate AI processing
+    setTimeout(() => {
+        initializeAIRiskChart();
+        initializeAIForecastChart();
+        generateAIInsights();
+        
+        // Restore active state
+        aiStatusIndicators.forEach(indicator => {
+            indicator.classList.remove('loading');
+            indicator.classList.add('active');
+        });
+        
+        showNotification('AI Analytics refreshed successfully', 'success');
+    }, 1500);
+}
+
+function initializeAIRiskChart() {
+    const ctx = document.getElementById('aiRiskChart');
+    if (!ctx) return;
+    
+    // Generate sample risk data
+    const riskData = {
+        labels: ['Low Risk', 'Medium Risk', 'High Risk', 'Critical Risk'],
+        datasets: [{
+            label: 'Contract Risk Distribution',
+            data: [65, 25, 8, 2],
+            backgroundColor: [
+                'rgba(46, 204, 113, 0.8)',
+                'rgba(255, 193, 7, 0.8)',
+                'rgba(255, 87, 34, 0.8)',
+                'rgba(231, 76, 60, 0.8)'
+            ],
+            borderColor: [
+                'rgba(46, 204, 113, 1)',
+                'rgba(255, 193, 7, 1)',
+                'rgba(255, 87, 34, 1)',
+                'rgba(231, 76, 60, 1)'
+            ],
+            borderWidth: 2
+        }]
+    };
+    
+    if (analyticsCharts.aiRisk) {
+        analyticsCharts.aiRisk.destroy();
+    }
+    
+    analyticsCharts.aiRisk = new Chart(ctx, {
+        type: 'doughnut',
+        data: riskData,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        color: '#fff',
+                        font: { size: 12 }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function initializeAIForecastChart() {
+    const ctx = document.getElementById('aiForecastChart');
+    if (!ctx) return;
+    
+    // Generate sample forecast data
+    const forecastData = {
+        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+        datasets: [{
+            label: 'Predicted Performance',
+            data: [85, 88, 92, 87, 90, 94],
+            borderColor: 'rgba(52, 152, 219, 1)',
+            backgroundColor: 'rgba(52, 152, 219, 0.2)',
+            tension: 0.4,
+            fill: true
+        }, {
+            label: 'Actual Performance',
+            data: [82, 85, 88, 84, 87, 90],
+            borderColor: 'rgba(46, 204, 113, 1)',
+            backgroundColor: 'rgba(46, 204, 113, 0.2)',
+            tension: 0.4,
+            fill: true
+        }]
+    };
+    
+    if (analyticsCharts.aiForecast) {
+        analyticsCharts.aiForecast.destroy();
+    }
+    
+    analyticsCharts.aiForecast = new Chart(ctx, {
+        type: 'line',
+        data: forecastData,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        color: '#fff',
+                        font: { size: 12 }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    ticks: { color: '#fff' },
+                    grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                },
+                x: {
+                    ticks: { color: '#fff' },
+                    grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                }
+            }
+        }
+    });
+}
+
+function generateAIInsights() {
+    const insightsContainer = document.querySelector('.ai-insights-content');
+    if (!insightsContainer) return;
+    
+    const insights = [
+        {
+            type: 'warning',
+            title: 'Contractor Performance Alert',
+            message: '3 contractors show declining performance trends. Consider reviewing their recent contracts.',
+            action: 'Review Details'
+        },
+        {
+            type: 'success',
+            title: 'Cost Optimization Opportunity',
+            message: 'AI analysis suggests potential 15% cost savings in upcoming contracts.',
+            action: 'View Recommendations'
+        },
+        {
+            type: 'info',
+            title: 'Market Trend Analysis',
+            message: 'Contract values in your sector are trending 8% higher than last quarter.',
+            action: 'See Analysis'
+        }
+    ];
+    
+    insightsContainer.innerHTML = insights.map(insight => `
+        <div class="ai-insight-item ${insight.type}">
+            <div class="insight-icon">
+                <i class="fas fa-${insight.type === 'warning' ? 'exclamation-triangle' : insight.type === 'success' ? 'check-circle' : 'info-circle'}"></i>
+            </div>
+            <div class="insight-content">
+                <h5>${insight.title}</h5>
+                <p>${insight.message}</p>
+                <button class="insight-action-btn">${insight.action}</button>
+            </div>
+        </div>
+    `).join('');
+}
+
 // Initialize analytics
 function initializeAnalytics() {
     // Initialize date range selector
@@ -129,6 +302,9 @@ async function loadAnalyticsData() {
         
         // Update charts
         updateCharts(filteredData);
+        
+        // Initialize AI Analytics
+        refreshAIAnalytics();
         
         // Note: Analytics table removed as requested
         
