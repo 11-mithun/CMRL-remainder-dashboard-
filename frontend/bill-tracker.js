@@ -1,2270 +1,914 @@
 // Global variables
-
-let rowCounter = 0;
-
-let savedData = [];
-
-const STORAGE_KEY = 'billTrackerData';
-
-// Undo/Redo System
 let history = [];
 let historyIndex = -1;
 const MAX_HISTORY_SIZE = 50;
 
+// Data persistence keys
+const BILL_TRACKER_DATA_KEY = 'billTrackerData';
+const BILL_TRACKER_HISTORY_KEY = 'billTrackerHistory';
+const BILL_TRACKER_HISTORY_INDEX_KEY = 'billTrackerHistoryIndex';
+const ANALYTICS_DATA_KEY = 'analyticsData'; // Add analytics key
 
-// Initialize on page load
-
-document.addEventListener('DOMContentLoaded', function () {
-
-    loadData();
-
+// Initialize the page
+document.addEventListener('DOMContentLoaded', function() {
     setupEventListeners();
-
+    loadDataFromStorage(); // Load saved data
     updateTotalCount();
-
-    setupMobileMenu();
-
-    setupKeyboardShortcuts(); // Add keyboard shortcuts
-
-    setupArrowKeyNavigation(); // Add arrow key navigation
-
+    setupLiveUpdates(); // Setup live data updates
 });
-// Setup keyboard shortcuts for Ctrl+Z and Ctrl+Y
-function setupKeyboardShortcuts() {
-    document.addEventListener('keydown', function(e) {
-        // Ctrl+Z for undo
-        if (e.ctrlKey && e.key === 'z') {
-            e.preventDefault();
-            undo();
-            return;
-        }
-        
-        // Ctrl+Y for redo
-        if (e.ctrlKey && e.key === 'y') {
-            e.preventDefault();
-            redo();
-            return;
-        }
-        
-        // Also support Ctrl+Shift+Z for redo (alternative)
-        if (e.ctrlKey && e.shiftKey && e.key === 'z') {
-            e.preventDefault();
-            redo();
-            return;
-        }
-    });
-}
-
-
 
 // Setup event listeners
-
 function setupEventListeners() {
-
     document.getElementById('addRowBtn').addEventListener('click', addRow);
-
-    document.getElementById('importBtn').addEventListener('click', importFromExcel);
-
     document.getElementById('saveBtn').addEventListener('click', saveData);
-
     document.getElementById('refreshBtn').addEventListener('click', refreshPage);
-
     document.getElementById('printBtn').addEventListener('click', printTable);
-
     document.getElementById('exportBtn').addEventListener('click', exportToExcel);
-    
-    // Undo/Redo buttons
     document.getElementById('undoBtn').addEventListener('click', undo);
     document.getElementById('redoBtn').addEventListener('click', redo);
-
-
-
+    
+    // Import button functionality
+    document.getElementById('importBtn').addEventListener('click', function() {
+        document.getElementById('excelFileInput').click();
+    });
+    
+    // File input change event
+    document.getElementById('excelFileInput').addEventListener('change', handleFileImport);
+    
+    // Add event delegation for date inputs to calculate duration
+    document.addEventListener('change', function(e) {
+        if (e.target.classList.contains('start-date-input') || e.target.classList.contains('end-date-input')) {
+            calculateDuration(e.target);
+        }
+    });
+    
+    // Initialize duration calculations after page load
+    setTimeout(() => {
+        updateAllDurations();
+        startRealTimeDurationUpdates();
+    }, 500);
+    
     // Search functionality
-
     const searchInput = document.querySelector('.search-input');
-
     if (searchInput) {
-
-        searchInput.addEventListener('input', function (e) {
-
+        searchInput.addEventListener('input', function(e) {
             filterTable(e.target.value);
-
         });
-
     }
-
-
-
-    // Theme Toggle
-
-    const themeBtn = document.getElementById('themeToggleBtn');
-
-    if (themeBtn) {
-
-        themeBtn.addEventListener('click', function () {
-
-            const user = Auth.getUser();
-
-            if (user) {
-
-                const currentTheme = user.theme || 'light';
-
-                const newTheme = (currentTheme === 'light') ? 'dark' : 'light';
-
-                Auth.updateTheme(newTheme);
-
-            }
-
-        });
-
-    }
-
 }
 
-
-
-// Mobile menu functionality
-
-function setupMobileMenu() {
-
-    const mobileMenuToggle = document.getElementById('mobileMenuToggle');
-
-    const sidebar = document.getElementById('sidebar');
-
-
-
-    // Create overlay element
-
-    const overlay = document.createElement('div');
-
-    overlay.className = 'mobile-overlay';
-
-    document.body.appendChild(overlay);
-
-
-
-    if (mobileMenuToggle && sidebar) {
-
-        // Toggle menu
-
-        mobileMenuToggle.addEventListener('click', function (e) {
-
-            e.stopPropagation();
-
-            sidebar.classList.toggle('mobile-open');
-
-            mobileMenuToggle.classList.toggle('active');
-
-            overlay.classList.toggle('active');
-
-
-
-            // Change icon
-
-            const icon = mobileMenuToggle.querySelector('i');
-
-            if (sidebar.classList.contains('mobile-open')) {
-
-                icon.className = 'fas fa-times';
-
-                document.body.style.overflow = 'hidden'; // Prevent background scroll
-
-            } else {
-
-                icon.className = 'fas fa-bars';
-
-                document.body.style.overflow = '';
-
-            }
-
-        });
-
-
-
-        // Close menu when clicking overlay
-
-        overlay.addEventListener('click', function () {
-
-            sidebar.classList.remove('mobile-open');
-
-            mobileMenuToggle.classList.remove('active');
-
-            overlay.classList.remove('active');
-
-            const icon = mobileMenuToggle.querySelector('i');
-
-            icon.className = 'fas fa-bars';
-
-            document.body.style.overflow = '';
-
-        });
-
-
-
-        // Close sidebar when clicking a nav item on mobile
-
-        const navItems = sidebar.querySelectorAll('.nav-item');
-
-        navItems.forEach(item => {
-
-            item.addEventListener('click', function () {
-
-                if (window.innerWidth <= 768) {
-
-                    sidebar.classList.remove('mobile-open');
-
-                    mobileMenuToggle.classList.remove('active');
-
-                    overlay.classList.remove('active');
-
-                    const icon = mobileMenuToggle.querySelector('i');
-
-                    icon.className = 'fas fa-bars';
-
-                    document.body.style.overflow = '';
-
-                }
-
-            });
-
-        });
-
-
-
-        // Handle window resize
-
-        window.addEventListener('resize', function () {
-
-            if (window.innerWidth > 768) {
-
-                sidebar.classList.remove('mobile-open');
-
-                mobileMenuToggle.classList.remove('active');
-
-                overlay.classList.remove('active');
-
-                const icon = mobileMenuToggle.querySelector('i');
-
-                icon.className = 'fas fa-bars';
-
-                document.body.style.overflow = '';
-
-            }
-
-        });
-
-    }
-
-}
-
-
-
-// Add new row to table
-
-function addRow() {
-
-    const tbody = document.getElementById('tableBody');
-
-    const row = document.createElement('tr');
-
-    
-
-    // Calculate the next serial number based on current rows
-
-    const currentRows = tbody.querySelectorAll('tr');
-
-    const nextSerialNumber = currentRows.length + 1;
-
-
-
-    row.innerHTML = `
-
-        <td>
-
-            <input type="text" class="sno-input" placeholder="Enter S.No" value="${nextSerialNumber}">
-
-        </td>
-
-        <td>
-
-            <input type="text" class="efile-input" placeholder="Enter E-File">
-
-        </td>
-
-        <td>
-
-            <input type="text" class="contractor-input" placeholder="Enter Contractor">
-
-            <a href="#" class="contractor-link" style="display: none;" target="_blank"></a>
-
-        </td>
-
-        <td>
-
-            <input type="date" class="approved-date-input">
-
-        </td>
-
-        <td>
-
-            <input type="text" class="approved-amount-input" placeholder="Enter Amount">
-
-        </td>
-
-        <td>
-
-            <select class="bill-frequency-input">
-
-                <option value="">Select Frequency</option>
-
-                <option value="monthly">Monthly</option>
-
-                <option value="quarterly">Quarterly</option>
-
-                <option value="half-yearly">Half Yearly</option>
-
-                <option value="annually">Annually</option>
-
-            </select>
-
-        </td>
-
-        <td>
-
-            <input type="date" class="bill-date-input">
-
-        </td>
-
-        <td>
-
-            <input type="date" class="bill-due-date-input">
-
-        </td>
-
-        <td>
-
-            <input type="date" class="bill-paid-date-input">
-
-        </td>
-
-        <td>
-
-            <input type="text" class="paid-amount-input" placeholder="Enter Amount">
-
-        </td>
-
-        <td>
-
-            <input type="file" class="attachment-input" accept="*/*">
-
-            <span class="file-name"></span>
-
-        </td>
-
-        <td>
-
-            <button class="delete-btn" onclick="deleteRow(this)">
-
-                <i class="fas fa-trash"></i> Delete
-
-            </button>
-
-        </td>
-
-    `;
-
-
-
-    tbody.appendChild(row);
-
-
-
-    // Add file size validation
-
-    const fileInput = row.querySelector('.attachment-input');
-
-    fileInput.addEventListener('change', function (e) {
-
-        validateFileSize(e.target);
-
-        updateContractorHyperlink(row);
-
-    });
-
-
-
-    // Setup contractor input listener
-
-    const contractorInput = row.querySelector('.contractor-input');
-
-    contractorInput.addEventListener('input', function () {
-
-        updateContractorHyperlink(row);
-
-        saveState(); // Save state for undo/redo
-
-    });
-
-    // Add input listeners for undo/redo
-
-    const inputs = row.querySelectorAll('input[type="text"], input[type="date"], select');
-
-    inputs.forEach(input => {
-
-        input.addEventListener('input', function() {
-
-            saveState(); // Save state for undo/redo
-
-        });
-
-        input.addEventListener('change', function() {
-
-            saveState(); // Save state for undo/redo
-
-        });
-
-    });
-
-    updateTotalCount();
-    renumberSerialNumbers(); // Ensure all serial numbers are sequential
-    saveState(); // Save state for undo/redo
-}
-
-
-
-// Validate file size (max 10MB)
-
-function validateFileSize(input) {
-
-    const file = input.files[0];
-
-    const fileNameSpan = input.parentElement.querySelector('.file-name');
-
-
-
-    if (file) {
-
-        const fileSizeMB = file.size / (1024 * 1024);
-
-
-
-        if (fileSizeMB > 10) {
-
-            alert('File size exceeds 10MB. Please select a smaller file.');
-
-            input.value = '';
-
-            fileNameSpan.textContent = '';
-
-            return false;
-
+// Calculate duration between start and end date
+function calculateDuration(event) {
+    const row = event.target.closest('tr');
+    const startDateInput = row.querySelector('.start-date-input');
+    const endDateInput = row.querySelector('.end-date-input');
+    const durationDisplay = row.querySelector('.duration-display');
+    const durationCell = durationDisplay.parentElement;
+
+    if (startDateInput.value && endDateInput.value) {
+        const startDate = new Date(startDateInput.value);
+        const endDate = new Date(endDateInput.value);
+        
+        // Calculate difference in days
+        const diffTime = endDate - startDate;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays < 0) {
+            durationDisplay.textContent = 'Invalid dates';
+            durationDisplay.classList.remove('duration-safe');
+            durationDisplay.classList.add('duration-left');
+        } else if (diffDays === 0) {
+            durationDisplay.textContent = 'Same day';
+            durationDisplay.classList.remove('duration-safe');
+            durationDisplay.classList.add('duration-left');
         } else {
-
-            fileNameSpan.textContent = file.name;
-
-            fileNameSpan.style.color = '#00d4ff';
-
-            fileNameSpan.style.fontSize = '12px';
-
-            return true;
-
-        }
-
-    }
-
-    return false;
-
-}
-
-
-
-// Update contractor cell to show hyperlink when file is attached
-
-function updateContractorHyperlink(row) {
-
-    const contractorInput = row.querySelector('.contractor-input');
-
-    const contractorLink = row.querySelector('.contractor-link');
-
-    const attachmentInput = row.querySelector('.attachment-input');
-
-    const file = attachmentInput?.files[0];
-
-
-
-    if (!contractorInput || !contractorLink) return;
-
-
-
-    // Get contractor name from input (input is always visible now)
-
-    let contractorName = contractorInput.value.trim();
-
-
-
-    // Check if file changed - if so, clean up old URL
-
-    const currentFileName = contractorLink.dataset.fileName;
-
-    if (currentFileName && file && file.name !== currentFileName) {
-
-        if (contractorLink.dataset.objectUrl) {
-
-            URL.revokeObjectURL(contractorLink.dataset.objectUrl);
-
-            delete contractorLink.dataset.objectUrl;
-
-        }
-
-    }
-
-
-
-    if (file) {
-
-        // Get or create object URL for the file
-
-        let fileUrl = contractorLink.dataset.objectUrl;
-
-        if (!fileUrl) {
-
-            fileUrl = URL.createObjectURL(file);
-
-            contractorLink.dataset.objectUrl = fileUrl;
-
-            contractorLink.dataset.fileName = file.name;
-
-        }
-
-
-
-        contractorLink.href = '#';
-
-        contractorLink.textContent = contractorName || contractorLink.textContent || 'Contractor';
-
-        contractorLink.style.display = contractorName ? 'block' : 'none';
-
-        contractorLink.style.color = '#00d4ff';
-
-        contractorLink.style.textDecoration = 'underline';
-
-        contractorLink.style.cursor = 'pointer';
-
-        contractorLink.style.marginTop = '5px';
-
-        contractorLink.style.fontSize = '12px';
-
-        contractorLink.style.textAlign = 'center';
-
-
-
-        // Remove existing click listener if any
-
-        contractorLink.replaceWith(contractorLink.cloneNode(true));
-
-        const newLink = row.querySelector('.contractor-link');
-
-
-
-        // Add click handler to open file visually
-
-        newLink.addEventListener('click', function (e) {
-
-            e.preventDefault();
-
-            const currentFileUrl = newLink.dataset.objectUrl;
-
-            if (currentFileUrl) {
-
-                openFileVisually(currentFileUrl, newLink.dataset.fileName, file.type);
-
+                durationDisplay.textContent = diffDays;
+                durationDisplay.classList.remove('duration-left');
+                durationDisplay.classList.add('duration-safe');
+
+                // Color coding: red if <= 60 days
+                if (diffDays <= 60) {
+                    durationDisplay.classList.add('duration-left');
+                }
             }
-
-        });
-
-
-
-        // Always sync link text with input value
-
-        newLink.textContent = contractorName || newLink.textContent || 'Contractor';
-
-        newLink.style.display = contractorName ? 'block' : 'none';
-
-
-
-        // Keep input visible
-
-        contractorInput.style.display = '';
-
     } else {
-
-        contractorLink.style.display = 'none';
-
-        contractorLink.removeAttribute('href');
-
+        durationDisplay.textContent = '-';
+        durationDisplay.classList.remove('duration-safe', 'duration-left');
     }
 
+    // Auto-save after calculation
+    updateNotificationCount();
 }
 
-
-
-// Convert file to base64 string
-
-function fileToBase64(file) {
-
-    return new Promise((resolve, reject) => {
-
-        const reader = new FileReader();
-
-        reader.onload = () => resolve(reader.result);
-
-        reader.onerror = reject;
-
-        reader.readAsDataURL(file);
-
-    });
-
-}
-
-
-
-// Convert base64 string back to file
-
-function base64ToFile(base64String, fileName) {
-
-    const arr = base64String.split(',');
-
-    const mime = arr[0].match(/:(.*?);/)[1];
-
-    const bstr = atob(arr[1]);
-
-    let n = bstr.length;
-
-    const u8arr = new Uint8Array(n);
-
-    while (n--) {
-
-        u8arr[n] = bstr.charCodeAt(n);
-
-    }
-
-    return new File([u8arr], fileName, { type: mime });
-
-}
-
-
-
-// Open file visually in browser (not download)
-
-function openFileVisually(fileUrl, fileName, fileType) {
-
-    // Check if file type can be displayed inline
-
-    const displayableTypes = [
-
-        'application/pdf',
-
-        'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
-
-        'text/plain', 'text/html', 'text/css', 'text/javascript',
-
-        'application/json', 'application/xml'
-
-    ];
-
-
-
-    const isDisplayable = displayableTypes.some(type => fileType && fileType.includes(type.split('/')[1])) ||
-
-        displayableTypes.includes(fileType);
-
-
-
-    if (isDisplayable) {
-
-        // Open in new window/tab for inline viewing
-
-        const newWindow = window.open(fileUrl, '_blank');
-
-        if (!newWindow) {
-
-            alert('Please allow pop-ups to view the file.');
-
-        }
-
-    } else {
-
-        // For other file types, try to open in new window
-
-        const newWindow = window.open(fileUrl, '_blank');
-
-        if (!newWindow) {
-
-            alert('Please allow pop-ups to view the file.');
-
-        }
-
-    }
-
-}
-
-
-
-// Renumber serial numbers to be sequential
-
-function renumberSerialNumbers() {
-
+// Update all durations to show current days left from today
+function updateAllDurations() {
     const tbody = document.getElementById('tableBody');
+    if (!tbody) return;
 
     const rows = tbody.querySelectorAll('tr');
-
-    
-
-    rows.forEach((row, index) => {
-
-        const snoInput = row.querySelector('.sno-input');
-
-        if (snoInput) {
-
-            snoInput.value = index + 1;
-
-        }
-
-    });
-
-    
-
-    updateTotalCount();
-
-    saveDataToStorage();
-
-}
-
-
-
-// Delete row
-
-function deleteRow(button) {
-
-    if (confirm('Are you sure you want to delete this row?')) {
-
-        const row = button.closest('tr');
-
-        row.remove();
-
-        renumberSerialNumbers(); // Renumber all serial numbers after deletion
-
-    }
-
-}
-
-
-
-// Save data
-
-async function saveData() {
-
-    const tbody = document.getElementById('tableBody');
-
-    const rows = tbody.querySelectorAll('tr');
-
-    savedData = [];
-
-
-
-    rows.forEach((row, index) => {
-
-        const sno = row.querySelector('.sno-input')?.value || '';
-
-        const efile = row.querySelector('.efile-input')?.value || '';
-
-        let contractor = '';
-
-        const contractorInput = row.querySelector('.contractor-input');
-
-        const contractorLink = row.querySelector('.contractor-link');
-
-
-
-        if (contractorInput) {
-
-            contractor = contractorInput.value || '';
-
-        } else if (contractorLink) {
-
-            contractor = contractorLink.textContent || '';
-
-        }
-
-
-
-        const approvedDate = row.querySelector('.approved-date-input')?.value || '';
-
-        const approvedAmount = row.querySelector('.approved-amount-input')?.value || '';
-
-        const billFrequency = row.querySelector('.bill-frequency-input')?.value || '';
-
-        const billDate = row.querySelector('.bill-date-input')?.value || '';
-
-        const billDueDate = row.querySelector('.bill-due-date-input')?.value || '';
-
-        const billPaidDate = row.querySelector('.bill-paid-date-input')?.value || '';
-
-        const paidAmount = row.querySelector('.paid-amount-input')?.value || '';
-
-        const attachmentInput = row.querySelector('.attachment-input');
-
-        const file = attachmentInput?.files[0];
-
-
-
-        // Update contractor hyperlink if needed
-
-        updateContractorHyperlink(row);
-
-
-
-        // Store data
-
-        const rowData = {
-
-            sno,
-
-            efile,
-
-            contractor,
-
-            approvedDate,
-
-            approvedAmount,
-
-            billFrequency,
-
-            billDate,
-
-            billDueDate,
-
-            billPaidDate,
-
-            paidAmount,
-
-            fileName: file ? file.name : '',
-
-            fileSize: file ? file.size : 0
-
-        };
-
-
-
-        savedData.push(rowData);
-
-    });
-
-
-
-    // Save to API or localStorage
-
-    try {
-
-        await saveDataToStorage();
-
-        alert('Data saved successfully!');
-
-    } catch (error) {
-
-        alert('Error saving data. Please try again.');
-
-        console.error('Save error:', error);
-
-    }
-
-}
-
-
-
-// Save data to API (with localStorage fallback)
-
-async function saveDataToStorage() {
-
-    const tbody = document.getElementById('tableBody');
-
-    const rows = tbody.querySelectorAll('tr');
-
-    const dataToSave = [];
-
-
-
-    for (const row of rows) {
-
-        const sno = row.querySelector('.sno-input')?.value || '';
-
-        const efile = row.querySelector('.efile-input')?.value || '';
-
-        const contractorInput = row.querySelector('.contractor-input');
-
-        const contractorLink = row.querySelector('.contractor-link');
-
-        const contractor = contractorInput && contractorInput.style.display !== 'none'
-
-            ? contractorInput.value
-
-            : (contractorLink?.textContent || '');
-
-        const approvedDate = row.querySelector('.approved-date-input')?.value || '';
-
-        const approvedAmount = row.querySelector('.approved-amount-input')?.value || '';
-
-        const billFrequency = row.querySelector('.bill-frequency-input')?.value || '';
-
-        const billDate = row.querySelector('.bill-date-input')?.value || '';
-
-        const billDueDate = row.querySelector('.bill-due-date-input')?.value || '';
-
-        const billPaidDate = row.querySelector('.bill-paid-date-input')?.value || '';
-
-        const paidAmount = row.querySelector('.paid-amount-input')?.value || '';
-
-        const attachmentInput = row.querySelector('.attachment-input');
-
-        const file = attachmentInput?.files[0];
-
-
-
-        let fileBase64 = '';
-
-        let fileName = '';
-
-        let fileType = '';
-
-
-
-        if (file) {
-
-            fileName = file.name;
-
-            fileType = file.type;
-
-            try {
-
-                fileBase64 = await fileToBase64(file);
-
-            } catch (error) {
-
-                console.error('Error converting file to base64:', error);
-
-            }
-
-        }
-
-
-
-        dataToSave.push({
-
-            sno,
-
-            efile,
-
-            contractor,
-
-            approvedDate,
-
-            approvedAmount,
-
-            billFrequency,
-
-            billDate,
-
-            billDueDate,
-
-            billPaidDate,
-
-            paidAmount,
-
-            fileName,
-
-            fileBase64,
-
-            fileType
-
-        });
-
-    }
-
-
-
-    // Try to save to API, fallback to localStorage
-
-    try {
-
-        if (typeof billTrackerAPI !== 'undefined') {
-
-            await billTrackerAPI.save(dataToSave);
-
-            console.log('Data saved to API successfully');
-
-        } else {
-
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
-
-            console.log('Data saved to localStorage (API not available)');
-
-        }
-
-    } catch (error) {
-
-        console.error('Failed to save to API, using localStorage:', error);
-
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
-
-    }
-
-}
-
-
-
-// Load data from API (with localStorage fallback)
-
-async function loadData() {
-
-    let data = [];
-
-
-
-    // Try to load from API first
-
-    try {
-
-        if (typeof billTrackerAPI !== 'undefined') {
-
-            data = await billTrackerAPI.load();
-
-            console.log('Data loaded from API successfully');
-
-        } else {
-
-            // Fallback to localStorage if API is not available
-
-            const savedData = localStorage.getItem(STORAGE_KEY);
-
-            if (savedData) {
-
-                data = JSON.parse(savedData);
-
-                console.log('Data loaded from localStorage (API not available)');
-
-            }
-
-        }
-
-    } catch (error) {
-
-        console.error('Failed to load from API, trying localStorage:', error);
-
-        // Fallback to localStorage
-
-        const savedData = localStorage.getItem(STORAGE_KEY);
-
-        if (savedData) {
-
-            try {
-
-                data = JSON.parse(savedData);
-
-                console.log('Data loaded from localStorage fallback');
-
-            } catch (parseError) {
-
-                console.error('Error parsing localStorage data:', parseError);
-
-            }
-
-        }
-
-    }
-
-
-
-    if (data && data.length > 0) {
-
-        try {
-
-            const tbody = document.getElementById('tableBody');
-
-            tbody.innerHTML = '';
-
-
-
-            data.forEach((rowData, index) => {
-
-                const row = document.createElement('tr');
-
-                // Map database field names to frontend field names
-
-                const snoValue = rowData.sno || rowData.SNO || (index + 1);
-
-                rowCounter = Math.max(rowCounter, parseInt(snoValue) || index + 1);
-
-
-
-                // Create contractor cell with both input and link
-
-                const contractorValue = rowData.contractor || rowData.CONTRACTOR || '';
-
-                const fileName = rowData.fileName || rowData.file_name || rowData.FILE_NAME || '';
-
-                const fileBase64 = rowData.fileBase64 || rowData.file_base64 || rowData.FILE_BASE64 || '';
-
-                const hasFile = fileName && fileBase64;
-
-
-
-                row.innerHTML = `
-
-                    <td>
-
-                        <input type="text" class="sno-input" placeholder="Enter S.No" value="${snoValue}">
-
-                    </td>
-
-                    <td>
-
-                        <input type="text" class="efile-input" placeholder="Enter E-File" value="${rowData.efile || rowData.EFILE || ''}">
-
-                    </td>
-
-                    <td>
-
-                        <input type="text" class="contractor-input" placeholder="Enter Contractor" value="${contractorValue}">
-
-                        <a href="#" class="contractor-link" ${hasFile ? 'style="display: block; color: #00d4ff; text-decoration: underline; cursor: pointer; margin-top: 5px; font-size: 12px; text-align: center;"' : 'style="display: none;"'}">${contractorValue}</a>
-
-                    </td>
-
-                    <td>
-
-                        <input type="date" class="approved-date-input" value="${rowData.approvedDate || rowData.approved_date || rowData.APPROVED_DATE || ''}">
-
-                    </td>
-
-                    <td>
-
-                        <input type="text" class="approved-amount-input" placeholder="Enter Amount" value="${rowData.approvedAmount || rowData.approved_amount || rowData.APPROVED_AMOUNT || ''}">
-
-                    </td>
-
-                    <td>
-
-                        <select class="bill-frequency-input">
-
-                            <option value="">Select Frequency</option>
-
-                            <option value="monthly" ${(rowData.billFrequency || rowData.bill_frequency || rowData.BILL_FREQUENCY || '') === 'monthly' ? 'selected' : ''}>Monthly</option>
-
-                            <option value="quarterly" ${(rowData.billFrequency || rowData.bill_frequency || rowData.BILL_FREQUENCY || '') === 'quarterly' ? 'selected' : ''}>Quarterly</option>
-
-                            <option value="half-yearly" ${(rowData.billFrequency || rowData.bill_frequency || rowData.BILL_FREQUENCY || '') === 'half-yearly' ? 'selected' : ''}>Half Yearly</option>
-
-                            <option value="annually" ${(rowData.billFrequency || rowData.bill_frequency || rowData.BILL_FREQUENCY || '') === 'annually' ? 'selected' : ''}>Annually</option>
-
-                        </select>
-
-                    </td>
-
-                    <td>
-
-                        <input type="date" class="bill-date-input" value="${rowData.billDate || rowData.bill_date || rowData.BILL_DATE || ''}">
-
-                    </td>
-
-                    <td>
-
-                        <input type="date" class="bill-due-date-input" value="${rowData.billDueDate || rowData.bill_due_date || rowData.BILL_DUE_DATE || ''}">
-
-                    </td>
-
-                    <td>
-
-                        <input type="date" class="bill-paid-date-input" value="${rowData.billPaidDate || rowData.bill_paid_date || rowData.BILL_PAID_DATE || ''}">
-
-                    </td>
-
-                    <td>
-
-                        <input type="text" class="paid-amount-input" placeholder="Enter Amount" value="${rowData.paidAmount || rowData.paid_amount || rowData.PAID_AMOUNT || ''}">
-
-                    </td>
-
-                    <td>
-
-                        <input type="file" class="attachment-input" accept="*/*">
-
-                        <span class="file-name" style="color: #00d4ff; font-size: 12px;">${fileName}</span>
-
-                    </td>
-
-                    <td>
-
-                        <button class="delete-btn" onclick="deleteRow(this)">
-
-                            <i class="fas fa-trash"></i> Delete
-
-                        </button>
-
-                    </td>
-
-                `;
-
-
-
-                tbody.appendChild(row);
-
-
-
-                // Restore file if it exists
-
-                if (hasFile && fileBase64) {
-
-                    try {
-
-                        const file = base64ToFile(fileBase64, fileName);
-
-                        const fileInput = row.querySelector('.attachment-input');
-
-                        const dataTransfer = new DataTransfer();
-
-                        dataTransfer.items.add(file);
-
-                        fileInput.files = dataTransfer.files;
-
-
-
-                        // Update contractor link
-
-                        const contractorLink = row.querySelector('.contractor-link');
-
-                        const fileUrl = URL.createObjectURL(file);
-
-                        contractorLink.href = '#';
-
-                        contractorLink.dataset.objectUrl = fileUrl;
-
-                        contractorLink.dataset.fileName = file.name;
-
-
-
-                        // Remove existing click listener if any
-
-                        contractorLink.replaceWith(contractorLink.cloneNode(true));
-
-                        const newLink = row.querySelector('.contractor-link');
-
-
-
-                        // Add click handler to open file visually
-
-                        newLink.addEventListener('click', function (e) {
-
-                            e.preventDefault();
-
-                            openFileVisually(fileUrl, file.name, file.type);
-
-                        });
-
-                    } catch (error) {
-
-                        console.error('Error restoring file:', error);
-
-                    }
-
-                }
-
-
-
-                const fileInput = row.querySelector('.attachment-input');
-
-                const contractorInput = row.querySelector('.contractor-input');
-
-
-
-                if (fileInput) {
-
-                    fileInput.addEventListener('change', function (e) {
-
-                        validateFileSize(e.target);
-
-                        updateContractorHyperlink(row);
-
-                    });
-
-                }
-
-
-
-                if (contractorInput) {
-
-                    contractorInput.addEventListener('input', function () {
-
-                        updateContractorHyperlink(row);
-
-                    });
-
-                }
-
-            });
-
-
-
-            updateTotalCount();
-
-        } catch (error) {
-
-            console.error('Error loading data:', error);
-
-        }
-
-    }
-
-}
-
-
-
-// Refresh page (data persists due to localStorage)
-
-function refreshPage() {
-
-    // Clear search and reload
-
-    const searchInput = document.querySelector('.search-input');
-
-    if (searchInput) {
-
-        searchInput.value = '';
-
-    }
-
-    location.reload();
-
-}
-
-
-
-// Print table
-
-function printTable() {
-
-    // Create a new window with formatted table
-
-    const printWindow = window.open('', '_blank');
-
-    const tbody = document.getElementById('tableBody');
-
-    const rows = tbody.querySelectorAll('tr');
-
-
-
-    if (rows.length === 0) {
-
-        alert('No data to print!');
-
-        return;
-
-    }
-
-
-
-    let tableHTML = `
-
-        <!DOCTYPE html>
-
-        <html>
-
-        <head>
-
-            <title>Bill Tracker - Print</title>
-
-            <style>
-
-                body {
-
-                    font-family: Arial, sans-serif;
-
-                    padding: 20px;
-
-                }
-
-                h1 {
-
-                    text-align: center;
-
-                    color: #333;
-
-                }
-
-                table {
-
-                    width: 100%;
-
-                    border-collapse: collapse;
-
-                    margin-top: 20px;
-
-                }
-
-                th, td {
-
-                    border: 1px solid #333;
-
-                    padding: 10px;
-
-                    text-align: left;
-
-                    font-size: 12px;
-
-                }
-
-                th {
-
-                    background-color: #7b2cbf;
-
-                    color: white;
-
-                    font-weight: bold;
-
-                }
-
-                tr:nth-child(even) {
-
-                    background-color: #f2f2f2;
-
-                }
-
-            </style>
-
-        </head>
-
-        <body>
-
-            <h1>Bill Tracker</h1>
-
-            <table>
-
-                <thead>
-
-                    <tr>
-
-                        <th>S.NO</th>
-
-                        <th>E-FILE</th>
-
-                        <th>CONTRACTOR</th>
-
-                        <th>APPROVED DATE</th>
-
-                        <th>APPROVED AMOUNT</th>
-
-                        <th>BILL FREQUENCY</th>
-
-                        <th>BILL DATE</th>
-
-                        <th>BILL DUE DATE</th>
-
-                        <th>BILL PAID DATE</th>
-
-                        <th>PAID AMOUNT</th>
-
-                        <th>ATTACHMENT</th>
-
-                    </tr>
-
-                </thead>
-
-                <tbody>
-
-    `;
-
-
 
     rows.forEach(row => {
+        const startDateInput = row.querySelector('.start-date-input');
+        const endDateInput = row.querySelector('.end-date-input');
+        const durationDisplay = row.querySelector('.duration-display');
 
-        const sno = row.querySelector('.sno-input')?.value || '';
+        if (startDateInput && endDateInput && durationDisplay && 
+            startDateInput.value && endDateInput.value) {
+            
+            const startDate = new Date(startDateInput.value);
+            const endDate = new Date(endDateInput.value);
+            
+            const diffTime = endDate - startDate;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-        const efile = row.querySelector('.efile-input')?.value || '';
+            if (diffDays < 0) {
+                durationDisplay.textContent = 'Invalid dates';
+                durationDisplay.classList.remove('duration-safe');
+                durationDisplay.classList.add('duration-left');
+            } else if (diffDays === 0) {
+                durationDisplay.textContent = 'Same day';
+                durationDisplay.classList.remove('duration-safe');
+                durationDisplay.classList.add('duration-left');
+            } else {
+                durationDisplay.textContent = diffDays;
+                durationDisplay.classList.remove('duration-left');
+                durationDisplay.classList.add('duration-safe');
 
-        const contractorInput = row.querySelector('.contractor-input');
-
-        const contractorLink = row.querySelector('.contractor-link');
-
-        const contractor = contractorInput ? contractorInput.value : (contractorLink ? contractorLink.textContent : '');
-
-        const approvedDate = row.querySelector('.approved-date-input')?.value || '';
-
-        const approvedAmount = row.querySelector('.approved-amount-input')?.value || '';
-
-        const billFrequency = row.querySelector('.bill-frequency-input')?.value || '';
-
-        const billDate = row.querySelector('.bill-date-input')?.value || '';
-
-        const billDueDate = row.querySelector('.bill-due-date-input')?.value || '';
-
-        const billPaidDate = row.querySelector('.bill-paid-date-input')?.value || '';
-
-        const paidAmount = row.querySelector('.paid-amount-input')?.value || '';
-
-        const fileName = row.querySelector('.file-name')?.textContent.trim() || '';
-
-
-
-        tableHTML += `
-
-            <tr>
-
-                <td>${sno}</td>
-
-                <td>${efile}</td>
-
-                <td>${contractor}</td>
-
-                <td>${approvedDate}</td>
-
-                <td>${approvedAmount}</td>
-
-                <td>${billFrequency}</td>
-
-                <td>${billDate}</td>
-
-                <td>${billDueDate}</td>
-
-                <td>${billPaidDate}</td>
-
-                <td>${paidAmount}</td>
-
-                <td>${fileName}</td>
-
-            </tr>
-
-        `;
-
+                // Color coding: red if <= 60 days
+                if (diffDays <= 60) {
+                    durationDisplay.classList.add('duration-left');
+                }
+            }
+        } else {
+            durationDisplay.textContent = '-';
+            durationDisplay.classList.remove('duration-safe', 'duration-left');
+        }
     });
 
-
-
-    tableHTML += `
-
-                </tbody>
-
-            </table>
-
-        </body>
-
-        </html>
-
-    `;
-
-
-
-    printWindow.document.write(tableHTML);
-
-    printWindow.document.close();
-
-    printWindow.focus();
-
-    setTimeout(() => {
-
-        printWindow.print();
-
-    }, 250);
-
+    // Update notification badge after updating all durations
+    updateNotificationCount();
 }
 
+// Start duration updates (no current date logic)
+function startRealTimeDurationUpdates() {
+    // Create status indicator for duration updates
+    const createStatusIndicator = () => {
+        const indicator = document.createElement('div');
+        indicator.id = 'durationStatus';
+        indicator.style.cssText = `
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: #28a745;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        `;
+        indicator.textContent = 'Duration Calculator Active';
+        return indicator;
+    };
 
+    const updateStatus = () => {
+        // Update durations periodically (no current date dependency)
+        setInterval(() => {
+            updateAllDurations();
+        }, 300000); // Update every 5 minutes instead of every minute
+    };
 
-// Import from Excel
-function importFromExcel() {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.xlsx,.xls';
+    updateStatus();
+}
+
+// Calculate duration between start and end dates (no current date)
+function calculateDuration(dateInput) {
+    const row = dateInput.closest('tr');
+    const startDateInput = row.querySelector('.start-date-input');
+    const endDateInput = row.querySelector('.end-date-input');
+    const durationDisplay = row.querySelector('.duration-display');
     
-    input.onchange = function(e) {
-        const file = e.target.files[0];
-        if (!file) return;
-        
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            try {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
-                
-                // Skip header row and process data
-                const dataRows = jsonData.slice(1);
-                
-                if (dataRows.length === 0) {
-                    showNotification('No data found in Excel file', 'error');
-                    return;
-                }
-                
-                // Clear existing data
-                const tbody = document.getElementById('tableBody');
-                tbody.innerHTML = '';
-                rowCounter = 0;
-                
-                // Process each row
-                dataRows.forEach((row, index) => {
-                    if (row.length >= 11 && row.some(cell => cell !== undefined && cell !== '')) {
-                        addRowFromExcel(row);
-                    }
-                });
-                
-                saveState();
-                updateTotalCount();
-                showNotification(`Successfully imported ${dataRows.length} rows from Excel`, 'success');
-                
-            } catch (error) {
-                console.error('Error importing Excel:', error);
-                showNotification('Error importing Excel file. Please check the format.', 'error');
-            }
-        };
-        
-        reader.readAsArrayBuffer(file);
+    if (!startDateInput.value || !endDateInput.value) {
+        durationDisplay.textContent = '-';
+        durationDisplay.className = 'duration-display';
+        return;
+    }
+    
+    const startDate = new Date(startDateInput.value);
+    const endDate = new Date(endDateInput.value);
+    
+    // Calculate duration between start and end dates
+    const timeDiff = endDate - startDate;
+    const daysDiff = Math.round(timeDiff / (1000 * 60 * 60 * 24));
+    
+    // Handle invalid date ranges
+    if (daysDiff < 0) {
+        durationDisplay.textContent = 'Invalid';
+        durationDisplay.className = 'duration-display duration-left';
+        return;
+    }
+    
+    // Set duration value
+    durationDisplay.textContent = daysDiff;
+    durationDisplay.className = 'duration-display duration-safe';
+    
+    // Color coding based on duration length
+    if (daysDiff <= 60) {
+        durationDisplay.classList.add('duration-left');
+    }
+    
+    // Add tooltip with date information
+    const startDateStr = startDate.toLocaleDateString();
+    const endDateStr = endDate.toLocaleDateString();
+    durationDisplay.title = `Start: ${startDateStr}\nEnd: ${endDateStr}\nDuration: ${daysDiff} days`;
+}
+
+// Handle file import
+function handleFileImport(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            
+            // Get the first worksheet
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            
+            // Convert to JSON with raw:true to preserve Excel serial numbers
+            const jsonData = XLSX.utils.sheet_to_json(firstSheet, { raw: true });
+            
+            // Process the imported data
+            processImportedData(jsonData);
+            
+        } catch (error) {
+            console.error('Error reading file:', error);
+            alert('Error reading file. Please ensure it is a valid Excel file.');
+        }
     };
     
-    input.click();
+    reader.readAsArrayBuffer(file);
+    
+    // Reset the file input
+    event.target.value = '';
 }
 
-// Add row from Excel data
-function addRowFromExcel(data) {
+// Convert Excel date to JavaScript Date
+function excelDateToJS(v) {
+    if (!v && v !== 0) return null;
+    
+    console.log('Converting value:', v, 'Type:', typeof v);
+    
+    // Excel numeric date
+    if (typeof v === "number") {
+        const jsDate = new Date(Math.round((v - 25569) * 86400 * 1000));
+        console.log('Excel serial date:', v, '→ JS Date:', jsDate);
+        return jsDate;
+    }
+
+    // Already string date - try to parse
+    if (typeof v === "string") {
+        console.log('String date:', v);
+        const d = new Date(v);
+        if (!isNaN(d)) {
+            console.log('Parsed string date:', v, '→ JS Date:', d);
+            return d;
+        }
+        
+        // Try common date formats
+        const formats = [
+            /^(\d{2})[\/\-](\d{2})[\/\-](\d{4})$/, // DD/MM/YYYY or DD-MM-YYYY
+            /^(\d{4})[\/\-](\d{2})[\/\-](\d{2})$/, // YYYY/MM/DD or YYYY-MM-DD
+        ];
+        
+        for (const format of formats) {
+            const match = v.match(format);
+            if (match) {
+                let parsedDate;
+                if (match[1].length === 4) {
+                    // Year first
+                    parsedDate = new Date(parseInt(match[1]), parseInt(match[2]) - 1, parseInt(match[3]));
+                } else {
+                    // Day first
+                    parsedDate = new Date(parseInt(match[3]), parseInt(match[2]) - 1, parseInt(match[1]));
+                }
+                
+                if (!isNaN(parsedDate)) {
+                    console.log('Format matched:', v, '→ JS Date:', parsedDate);
+                    return parsedDate;
+                }
+            }
+        }
+    }
+    
+    console.warn('Could not parse date:', v);
+    return null;
+}
+
+// Process imported data
+function processImportedData(jsonData) {
+    if (jsonData.length === 0) {
+        alert('No data found in the file.');
+        return;
+    }
+    
+    console.log('Raw Excel data structure:', jsonData);
+    console.log('First row sample:', jsonData[0]);
+    console.log('Row count:', jsonData.length);
+    
+    // Clear existing table
+    const tbody = document.getElementById('tableBody');
+    tbody.innerHTML = '';
+    
+    let validRows = 0;
+    let skippedRows = 0;
+    
+    // Process each data row
+    for (let i = 0; i < jsonData.length; i++) {
+        const row = jsonData[i];
+        console.log(`\n=== Processing row ${i} ===`);
+        console.log('Raw row data:', row);
+        
+        // Apply strict date conversion
+        const startDate = excelDateToJS(row["Start Date"]);
+        const endDate = excelDateToJS(row["End Date"]);
+        
+        // Log each row for debugging
+        console.log('Start Date - Raw:', row["Start Date"], '→ Converted:', startDate);
+        console.log('End Date - Raw:', row["End Date"], '→ Converted:', endDate);
+        
+        // Reject row if either date missing
+        if (!startDate || !endDate) {
+            console.warn(`Skipping row ${i}: Missing start or end date`, row);
+            skippedRows++;
+            continue;
+        }
+        
+        // Calculate duration between start and end dates
+        const duration = Math.round((endDate - startDate) / 86400000);
+        
+        // Get other values (including S.NO from Excel)
+        const sno = row["S.NO"] || row["S.No"] || row["SNo"] || (i + 1); // Auto-fill if not present
+        console.log('S.NO extraction - Raw row data:', row);
+        console.log('S.NO extraction - Available keys:', Object.keys(row));
+        console.log('S.NO extraction - Looking for: S.NO, S.No, SNo');
+        console.log('S.NO extraction - Final value:', sno);
+        console.log('S.NO extraction - Type:', typeof sno);
+        console.log('S.NO extraction - Length:', sno.length);
+        const efileNo = row["Efile No"] || row["Efile"] || '';
+        const contractor = row["Company"] || row["Contractor"] || '';
+        const handleBy = row["Handle By"] || '';
+        let frequency = row["Frequency"] || row["frequency"] || '';
+        
+        // Clean up frequency value
+        if (frequency) {
+            frequency = frequency.toString().trim().toLowerCase();
+            console.log('Original frequency:', row["Frequency"], 'Cleaned frequency:', frequency);
+        }
+        
+        // Map frequency variations to standard values
+        const frequencyMap = {
+            'yearly': 'yearly',
+            'year': 'yearly',
+            'annually': 'yearly',
+            'half-yearly': 'half-yearly',
+            'half yearly': 'half-yearly',
+            'semi-annually': 'half-yearly',
+            'quarterly': 'quarterly',
+            'quarter': 'quarterly',
+            'monthly': 'monthly',
+            'month': 'monthly'
+        };
+        
+        frequency = frequencyMap[frequency] || frequency;
+        
+        console.log('Final values:', { sno, efileNo, contractor, startDate, endDate, duration, handleBy, frequency });
+        
+        // Format date as YYYY-MM-DD for HTML date inputs
+        const formatYYYYMMDD = (date) => {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+        
+        // Create new table row
+        const tableRow = document.createElement('tr');
+        console.log('About to generate HTML with sno:', sno);
+        tableRow.innerHTML = `
+            <td>
+                <input type="text" class="sno-input" placeholder="S.NO" value="${sno}">
+            </td>
+            <td>
+                <input type="text" class="efile-no-input" placeholder="Enter Efile No" value="${efileNo}">
+            </td>
+            <td>
+                <input type="text" class="contractor-input" placeholder="Enter Contractor" value="${contractor}">
+            </td>
+            <td>
+                <input type="date" class="start-date-input" value="${formatYYYYMMDD(startDate)}">
+            </td>
+            <td>
+                <input type="date" class="end-date-input" value="${formatYYYYMMDD(endDate)}">
+            </td>
+            <td>
+                <input type="text" class="duration-input" placeholder="Duration" value="${duration}" readonly>
+            </td>
+            <td>
+                <input type="text" class="handle-by-input" placeholder="Enter Handle By" value="${handleBy}">
+            </td>
+            <td>
+                <select class="frequency-select">
+                    <option value="">Select Frequency</option>
+                    <option value="yearly" ${frequency === 'yearly' ? 'selected' : ''}>Yearly</option>
+                    <option value="half-yearly" ${frequency === 'half-yearly' ? 'selected' : ''}>Half-Yearly</option>
+                    <option value="quarterly" ${frequency === 'quarterly' ? 'selected' : ''}>Quarterly</option>
+                    <option value="monthly" ${frequency === 'monthly' ? 'selected' : ''}>Monthly</option>
+                </select>
+            </td>
+        `;
+        
+        tbody.appendChild(tableRow);
+        validRows++;
+        
+        // Debug: Check what was actually rendered
+        const snoInput = tableRow.querySelector('.sno-input');
+        console.log('S.NO input after append - Element:', snoInput);
+        console.log('S.NO input after append - Value:', snoInput?.value);
+        console.log('S.NO input after append - HTML:', snoInput?.outerHTML);
+    }
+    
+    // Update all durations after import
+    setTimeout(() => {
+        updateAllDurations();
+    }, 100);
+    
+    updateTotalCount();
+    
+    const message = `Successfully imported ${validRows} rows${skippedRows > 0 ? ` (skipped ${skippedRows} invalid rows)` : ''}!`;
+    alert(message);
+}
+
+// Assign sequential S.NO numbers to all rows in the table
+function assignSequentialSNO() {
+    const tbody = document.getElementById('tableBody');
+    const rows = tbody.querySelectorAll('tr');
+    
+    // Find the highest existing S.NO to continue numbering
+    let startNumber = 1;
+    rows.forEach(row => {
+        const snoInput = row.querySelector('.sno-input');
+        if (snoInput && snoInput.value) {
+            const currentSNO = parseInt(snoInput.value);
+            if (!isNaN(currentSNO) && currentSNO >= startNumber) {
+                startNumber = currentSNO + 1;
+            }
+        }
+    });
+    
+    // Now assign sequential numbers to all rows that don't have S.NO
+    rows.forEach(row => {
+        const snoInput = row.querySelector('.sno-input');
+        if (snoInput && !snoInput.value) {
+            snoInput.value = startNumber++;
+        }
+    });
+    
+    console.log('Assigned sequential S.NO numbers starting from:', startNumber - (rows.length - 1));
+}
+
+// Check if row is a header row
+function isHeaderRow(row) {
+    const headerKeywords = ['s.no', 'efile', 'contractor', 'start date', 'end date', 'duration', 'handle', 'frequency'];
+    return row.some(cell => 
+        cell && typeof cell === 'string' && 
+        headerKeywords.some(keyword => cell.toLowerCase().includes(keyword))
+    );
+}
+
+// Get column mapping from headers
+function getColumnMapping(headerRow) {
+    const mapping = {
+        sno: -1,
+        efile: -1,
+        contractor: -1,
+        startDate: -1,
+        endDate: -1,
+        duration: -1,
+        handleBy: -1,
+        frequency: -1
+    };
+    
+    headerRow.forEach((header, index) => {
+        if (!header) return;
+        const headerLower = header.toString().toLowerCase().trim();
+        
+        // Explicit matching by header name
+        if (headerLower === 's.no' || headerLower === 'serial no' || headerLower === 'sl no') {
+            mapping.sno = index;
+        } else if (headerLower === 'efile no' || headerLower === 'e-file no' || headerLower === 'efile no') {
+            mapping.efile = index;
+        } else if (headerLower === 'company' || headerLower === 'contractor' || headerLower === 'vendor') {
+            mapping.contractor = index;
+        } else if (headerLower === 'start date' || headerLower === 'from date') {
+            mapping.startDate = index;
+        } else if (headerLower === 'end date' || headerLower === 'to date') {
+            mapping.endDate = index;
+        } else if (headerLower === 'duration' || headerLower === 'days') {
+            mapping.duration = index;
+        } else if (headerLower === 'handle by' || headerLower === 'assigned to') {
+            mapping.handleBy = index;
+        } else if (headerLower === 'frequency') {
+            mapping.frequency = index;
+        }
+    });
+    
+    return mapping;
+}
+
+// Format date for input field
+function formatDate(dateValue) {
+    // Handle null, undefined, or empty values
+    if (dateValue === null || dateValue === undefined || dateValue === '') {
+        return '';
+    }
+    
+    // Handle Excel serial dates (numbers like 46112, 46843)
+    if (typeof dateValue === 'number') {
+        // Excel dates are stored as days since 1900-01-01
+        // Convert to JavaScript Date (days since 1970-01-01)
+        const excelEpoch = new Date(1900, 0, 1); // 1900-01-01
+        const jsDate = new Date(excelEpoch.getTime() + (dateValue - 25569) * 86400 * 1000);
+        
+        if (isNaN(jsDate.getTime())) return '';
+        
+        // Format as YYYY-MM-DD
+        const year = jsDate.getFullYear();
+        const month = String(jsDate.getMonth() + 1).padStart(2, '0');
+        const day = String(jsDate.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+    
+    // If it's already a string in YYYY-MM-DD format, return as is
+    if (typeof dateValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+        return dateValue;
+    }
+    
+    // Handle string dates (like "15/02/2024", "02-15-2024", etc.)
+    if (typeof dateValue === 'string') {
+        // Try different date formats
+        const formats = [
+            /^\d{2}\/\d{2}\/\d{4}$/, // DD/MM/YYYY
+            /^\d{2}-\d{2}-\d{4}$/, // DD-MM-YYYY
+            /^\d{4}\/\d{2}\/\d{2}$/, // YYYY/MM/DD
+            /^\d{4}-\d{2}-\d{2}$/, // YYYY-MM-DD
+        ];
+        
+        for (const format of formats) {
+            if (format.test(dateValue)) {
+                const date = new Date(dateValue);
+                if (!isNaN(date.getTime())) {
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    return `${year}-${month}-${day}`;
+                }
+            }
+        }
+    }
+    
+    // Try to parse as regular date
+    const date = new Date(dateValue);
+    if (isNaN(date.getTime())) {
+        console.warn('Invalid date value:', dateValue);
+        return '';
+    }
+    
+    // Format as YYYY-MM-DD
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    
+    return `${year}-${month}-${day}`;
+}
+
+// Add new row
+function addRow() {
     const tbody = document.getElementById('tableBody');
     const row = document.createElement('tr');
-    rowCounter++;
-    
-    // Map Excel columns to table fields
-    const [
-        sno,
-        efile,
-        contractor,
-        approvedDate,
-        approvedAmount,
-        billFrequency,
-        billDate,
-        billDueDate,
-        billPaidDate,
-        paidAmount,
-        attachment
-    ] = data;
     
     row.innerHTML = `
         <td>
-            <input type="text" class="sno-input" value="${sno || rowCounter}" readonly>
+            <input type="text" class="sno-input" placeholder="S.NO" value="">
         </td>
         <td>
-            <input type="text" class="efile-input" value="${efile || ''}" placeholder="Enter E-File">
+            <input type="text" class="efile-no-input" placeholder="Enter Efile No">
         </td>
         <td>
-            <input type="text" class="contractor-input" value="${contractor || ''}" placeholder="Enter Contractor">
+            <input type="text" class="contractor-input" placeholder="Enter Contractor">
         </td>
         <td>
-            <input type="date" class="approved-date-input" value="${approvedDate || ''}">
+            <input type="date" class="start-date-input" placeholder="Enter Start Date">
         </td>
         <td>
-            <input type="text" class="approved-amount-input" value="${approvedAmount || ''}" placeholder="Enter Approved Amount">
+            <input type="date" class="end-date-input" placeholder="Enter End Date">
         </td>
         <td>
-            <input type="text" class="bill-frequency-input" value="${billFrequency || ''}" placeholder="Enter Bill Frequency">
+            <input type="text" class="duration-input" placeholder="Duration" readonly>
         </td>
         <td>
-            <input type="date" class="bill-date-input" value="${billDate || ''}">
+            <input type="text" class="handle-by-input" placeholder="Enter Handle By">
         </td>
         <td>
-            <input type="date" class="bill-due-date-input" value="${billDueDate || ''}">
-        </td>
-        <td>
-            <input type="date" class="bill-paid-date-input" value="${billPaidDate || ''}">
-        </td>
-        <td>
-            <input type="text" class="paid-amount-input" value="${paidAmount || ''}" placeholder="Enter Paid Amount">
-        </td>
-        <td>
-            <div class="attachment-cell">
-                ${attachment ? `<span class="file-name">${attachment}</span>` : '<input type="file" class="attachment-input" accept=".pdf,.doc,.docx">'}
-                <button class="view-btn" onclick="viewAttachment(this)" title="View Attachment" style="display: ${attachment ? 'inline-block' : 'none'};}">
-                    <i class="fas fa-eye"></i>
-                </button>
-                <button class="delete-btn" onclick="deleteAttachment(this)" title="Delete Attachment" style="display: ${attachment ? 'inline-block' : 'none'};}">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </div>
-        </td>
-        <td>
-            <button class="action-btn edit-btn" onclick="editRow(this)" title="Edit">
-                <i class="fas fa-edit"></i>
-            </button>
-            <button class="action-btn delete-btn" onclick="deleteRow(this)" title="Delete">
-                <i class="fas fa-trash"></i>
-            </button>
+            <select class="frequency-select">
+                <option value="">Select Frequency</option>
+                <option value="yearly">Yearly</option>
+                <option value="half-yearly">Half-Yearly</option>
+                <option value="quarterly">Quarterly</option>
+                <option value="monthly">Monthly</option>
+            </select>
         </td>
     `;
     
     tbody.appendChild(row);
+    updateTotalCount();
     
-    // Setup event listeners for the new row
-    setupRowEventListeners(row);
+    // Assign sequential S.NO number to the new row
+    assignSequentialSNO();
 }
 
-// Setup event listeners for a row
-function setupRowEventListeners(row) {
-    // Add input event listeners for auto-save
-    const inputs = row.querySelectorAll('input[type="text"');
-    inputs.forEach(input => {
-        input.addEventListener('input', function() {
-            saveState();
-        });
+// Delete row
+function deleteRow(btn) {
+    const row = btn.closest('tr');
+    row.remove();
+    updateTotalCount();
+}
+
+// Save data
+function saveData() {
+    const tbody = document.getElementById('tableBody');
+    const rows = tbody.querySelectorAll('tr');
+    
+    if (rows.length === 0) {
+        alert('No data to save!');
+        return;
+    }
+    
+    const data = [];
+    
+    rows.forEach(row => {
+        const sno = row.querySelector('.sno-input')?.value || '';
+        const efileNo = row.querySelector('.efile-no-input')?.value || '';
+        const contractor = row.querySelector('.contractor-input')?.value || '';
+        const startDate = row.querySelector('.start-date-input')?.value || '';
+        const endDate = row.querySelector('.end-date-input')?.value || '';
+        const duration = row.querySelector('.duration-display')?.textContent || '-';
+        const handleBy = row.querySelector('.handle-by-input')?.value || '';
+        const frequency = row.querySelector('.frequency-select')?.value || '';
+        
+        if (sno || efileNo || contractor || startDate || endDate || handleBy || frequency) {
+            data.push({
+                sno,
+                efileNo,
+                contractor,
+                startDate,
+                endDate,
+                duration,
+                handleBy,
+                frequency
+            });
+        }
     });
     
-    // Add file input event listeners
-    const attachmentInput = row.querySelector('.attachment-input');
-    if (attachmentInput) {
-        attachmentInput.addEventListener('change', function(e) {
-            handleFileSelect(e.target, 'attachment');
-        });
-    }
+    // Here you would normally send data to server
+    console.log('Saving data:', data);
+    alert('Data saved successfully!');
 }
 
-// Show notification helper
-function showNotification(message, type = 'info') {
-    // Create notification element
-    const notification = document.createElement('div');
-    notification.className = `notification notification-${type}`;
-    notification.innerHTML = `
-        <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
-        <span>${message}</span>
-        <button class="notification-close" onclick="this.parentElement.remove()">
-            <i class="fas fa-times"></i>
-        </button>
+// Refresh page
+function refreshPage() {
+    location.reload();
+}
+
+// Print table
+function printTable() {
+    const tbody = document.getElementById('tableBody');
+    const rows = tbody.querySelectorAll('tr');
+    
+    if (rows.length === 0) {
+        alert('No data to print!');
+        return;
+    }
+    
+    let printContent = `
+        <html>
+        <head>
+            <title>Bill Tracker</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 20px; }
+                table { border-collapse: collapse; width: 100%; }
+                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                th { background-color: #f2f2f2; font-weight: bold; }
+            </style>
+        </head>
+        <body>
+            <h2>Bill Tracker Report</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>S.NO</th>
+                        <th>EFILE NO</th>
+                        <th>CONTRACTOR</th>
+                        <th>START DATE</th>
+                        <th>END DATE</th>
+                        <th>DURATION</th>
+                        <th>HANDLE BY</th>
+                        <th>FREQUENCY</th>
+                    </tr>
+                </thead>
+                <tbody>
     `;
     
-    // Add styles
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: ${type === 'success' ? 'linear-gradient(135deg, #2ecc71, #27ae60)' : type === 'error' ? 'linear-gradient(135deg, #e74c3c, #c0392b)' : 'linear-gradient(135deg, #3498db, #2980b9)'};
-        color: white;
-        padding: 15px 20px;
-        border-radius: 8px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-        z-index: 10000;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        font-size: 14px;
-        max-width: 400px;
-        animation: slideIn 0.3s ease-out;
+    rows.forEach(row => {
+        const sno = row.querySelector('.sno-input')?.value || '';
+        const efileNo = row.querySelector('.efile-no-input')?.value || '';
+        const contractor = row.querySelector('.contractor-input')?.value || '';
+        const startDate = row.querySelector('.start-date-input')?.value || '';
+        const endDate = row.querySelector('.end-date-input')?.value || '';
+        const duration = row.querySelector('.duration-display')?.textContent || '-';
+        const handleBy = row.querySelector('.handle-by-input')?.value || '';
+        const frequency = row.querySelector('.frequency-select')?.value || '';
+        
+        printContent += `
+                    <tr>
+                        <td>${sno}</td>
+                        <td>${efileNo}</td>
+                        <td>${contractor}</td>
+                        <td>${startDate}</td>
+                        <td>${endDate}</td>
+                        <td>${duration}</td>
+                        <td>${handleBy}</td>
+                        <td>${frequency}</td>
+                    </tr>
+        `;
+    });
+    
+    printContent += `
+                </tbody>
+            </table>
+        </body>
+        </html>
     `;
     
-    // Add to page
-    document.body.appendChild(notification);
-    
-    // Auto remove after 5 seconds
-    setTimeout(() => {
-        if (notification.parentElement) {
-            notification.remove();
-        }
-    }, 5000);
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    printWindow.print();
 }
 
 // Export to Excel
-
 function exportToExcel() {
-
     const tbody = document.getElementById('tableBody');
-
     const rows = tbody.querySelectorAll('tr');
-
-
-
+    
     if (rows.length === 0) {
-
         alert('No data to export!');
-
         return;
-
     }
-
-
-
+    
     // Prepare data for export
-
     const exportData = [];
-
-
-
+    
     // Add headers
-
     exportData.push([
-
         'S.NO',
-
-        'E-File',
-
-        'Contractor',
-
-        'Approved Date',
-
-        'Approved Amount',
-
-        'Bill Frequency',
-
-        'Bill Date',
-
-        'Bill Due Date',
-
-        'Bill Paid Date',
-
-        'Paid Amount',
-
-        'Attachment File Name'
-
+        'EFILE NO',
+        'CONTRACTOR',
+        'START DATE',
+        'END DATE',
+        'DURATION',
+        'HANDLE BY',
+        'FREQUENCY'
     ]);
-
-
-
-    // Add rows
-
+    
     rows.forEach(row => {
-
         const sno = row.querySelector('.sno-input')?.value || '';
-
-        const efile = row.querySelector('.efile-input')?.value || '';
-
-        const contractorInput = row.querySelector('.contractor-input');
-
-        const contractorLink = row.querySelector('.contractor-link');
-
-        const contractor = contractorInput ? contractorInput.value : (contractorLink ? contractorLink.textContent.trim() : '');
-
-        const approvedDate = row.querySelector('.approved-date-input')?.value || '';
-
-        const approvedAmount = row.querySelector('.approved-amount-input')?.value || '';
-
-        const billFrequency = row.querySelector('.bill-frequency-input')?.value || '';
-
-        const billDate = row.querySelector('.bill-date-input')?.value || '';
-
-        const billDueDate = row.querySelector('.bill-due-date-input')?.value || '';
-
-        const billPaidDate = row.querySelector('.bill-paid-date-input')?.value || '';
-
-        const paidAmount = row.querySelector('.paid-amount-input')?.value || '';
-
-        const fileName = row.querySelector('.file-name')?.textContent.trim() || '';
-
-
-
+        const efileNo = row.querySelector('.efile-no-input')?.value || '';
+        const contractor = row.querySelector('.contractor-input')?.value || '';
+        const startDate = row.querySelector('.start-date-input')?.value || '';
+        const endDate = row.querySelector('.end-date-input')?.value || '';
+        const duration = row.querySelector('.duration-display')?.textContent || '-';
+        const handleBy = row.querySelector('.handle-by-input')?.value || '';
+        const frequency = row.querySelector('.frequency-select')?.value || '';
+        
         exportData.push([
-
             sno,
-
-            efile,
-
+            efileNo,
             contractor,
-
-            approvedDate,
-
-            approvedAmount,
-
-            billFrequency,
-
-            billDate,
-
-            billDueDate,
-
-            billPaidDate,
-
-            paidAmount,
-
-            fileName
-
+            startDate,
+            endDate,
+            duration,
+            handleBy,
+            frequency
         ]);
-
     });
-
-
-
-    // Create workbook and worksheet
-
-    const wb = XLSX.utils.book_new();
-
-    const ws = XLSX.utils.aoa_to_sheet(exportData);
-
-
-
-    // Set column widths
-
-    ws['!cols'] = [
-
-        { wch: 10 }, // S.NO
-
-        { wch: 20 }, // E-File
-
-        { wch: 25 }, // Contractor
-
-        { wch: 15 }, // Approved Date
-
-        { wch: 18 }, // Approved Amount
-
-        { wch: 15 }, // Bill Frequency
-
-        { wch: 15 }, // Bill Date
-
-        { wch: 15 }, // Bill Due Date
-
-        { wch: 15 }, // Bill Paid Date
-
-        { wch: 15 }, // Paid Amount
-
-        { wch: 30 }  // Attachment
-
-    ];
-
-
-
-    XLSX.utils.book_append_sheet(wb, ws, 'Bill Tracker');
-
-
-
-    // Generate filename with timestamp
-
-    const filename = `bill_tracker_export_${new Date().toISOString().split('T')[0]}.xlsx`;
-
-
-
-    // Save file
-
-    XLSX.writeFile(wb, filename);
-
+    
+    // Create CSV content
+    let csvContent = '';
+    exportData.forEach(row => {
+        csvContent += row.join(',') + '\n';
+    });
+    
+    // Create download link
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'bill_tracker_export.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    alert('Data exported successfully!');
 }
 
-
+// Filter table
+function filterTable(searchTerm) {
+    const tbody = document.getElementById('tableBody');
+    const rows = tbody.querySelectorAll('tr');
+    
+    rows.forEach(row => {
+        const sno = row.querySelector('.sno-input')?.value.toLowerCase() || '';
+        const efile = row.querySelector('.efile-input')?.value.toLowerCase() || '';
+        const contractor = row.querySelector('.contractor-input')?.value.toLowerCase() || '';
+        const startDate = row.querySelector('.start-date-input')?.value.toLowerCase() || '';
+        const endDate = row.querySelector('.end-date-input')?.value.toLowerCase() || '';
+        const duration = row.querySelector('.duration-display')?.textContent.toLowerCase() || '';
+        const handleBy = row.querySelector('.handle-by-input')?.value.toLowerCase() || '';
+        const frequency = row.querySelector('.frequency-select')?.value.toLowerCase() || '';
+        
+        const matches = sno.includes(searchTerm.toLowerCase()) || 
+                       efile.includes(searchTerm.toLowerCase()) || 
+                       contractor.includes(searchTerm.toLowerCase()) || 
+                       startDate.includes(searchTerm.toLowerCase()) || 
+                       endDate.includes(searchTerm.toLowerCase()) || 
+                       duration.includes(searchTerm.toLowerCase()) || 
+                       handleBy.includes(searchTerm.toLowerCase()) || 
+                       frequency.includes(searchTerm.toLowerCase());
+        
+        row.style.display = matches ? '' : 'none';
+    });
+    
+    updateTotalCount();
+}
 
 // Update total count
-
 function updateTotalCount() {
-
     const tbody = document.getElementById('tableBody');
-
-    const rowCount = tbody.querySelectorAll('tr').length;
-
-    document.getElementById('totalBadge').textContent = `Total: ${rowCount}`;
-
-}
-
-
-
-// Filter table based on search query
-
-function filterTable(searchQuery) {
-
-    const tbody = document.getElementById('tableBody');
-
     const rows = tbody.querySelectorAll('tr');
-
-    const query = searchQuery.toLowerCase().trim();
-
-    let visibleCount = 0;
-
-
-
-    if (query === '') {
-
-        // Show all rows if search is empty
-
-        rows.forEach(row => {
-
-            row.style.display = '';
-
-        });
-
-        updateTotalCount();
-
-        // Remove "no results" message if exists
-
-        const noResultsMsg = tbody.querySelector('.no-results-row');
-
-        if (noResultsMsg) {
-
-            noResultsMsg.remove();
-
-        }
-
-        return;
-
+    const visibleRows = Array.from(rows).filter(row => row.style.display !== 'none');
+    
+    const totalBadge = document.getElementById('totalBadge');
+    if (totalBadge) {
+        totalBadge.textContent = `Total: ${visibleRows.length}`;
     }
-
-
-
-    rows.forEach(row => {
-
-        // Skip the no-results row
-
-        if (row.classList.contains('no-results-row')) {
-
-            return;
-
-        }
-
-
-
-        // Get all text content from the row
-
-        const sno = row.querySelector('.sno-input')?.value.toLowerCase() || '';
-
-        const efile = row.querySelector('.efile-input')?.value.toLowerCase() || '';
-
-        const contractorInput = row.querySelector('.contractor-input');
-
-        const contractorLink = row.querySelector('.contractor-link');
-
-        const contractor = (contractorInput ? contractorInput.value : (contractorLink ? contractorLink.textContent : '')).toLowerCase();
-
-        const approvedDate = row.querySelector('.approved-date-input')?.value.toLowerCase() || '';
-
-        const approvedAmount = row.querySelector('.approved-amount-input')?.value.toLowerCase() || '';
-
-        const billFrequency = row.querySelector('.bill-frequency-input')?.value.toLowerCase() || '';
-
-        const billDate = row.querySelector('.bill-date-input')?.value.toLowerCase() || '';
-
-        const billDueDate = row.querySelector('.bill-due-date-input')?.value.toLowerCase() || '';
-
-        const billPaidDate = row.querySelector('.bill-paid-date-input')?.value.toLowerCase() || '';
-
-        const paidAmount = row.querySelector('.paid-amount-input')?.value.toLowerCase() || '';
-
-
-
-        // Check if any field matches the search query
-
-        const matches = sno.includes(query) ||
-
-            efile.includes(query) ||
-
-            contractor.includes(query) ||
-
-            approvedDate.includes(query) ||
-
-            approvedAmount.includes(query) ||
-
-            billFrequency.includes(query) ||
-
-            billDate.includes(query) ||
-
-            billDueDate.includes(query) ||
-
-            billPaidDate.includes(query) ||
-
-            paidAmount.includes(query);
-
-
-
-        if (matches) {
-
-            row.style.display = '';
-
-            visibleCount++;
-
-        } else {
-
-            row.style.display = 'none';
-
-        }
-
-    });
-
-
-
-    // Remove existing "no results" message
-
-    const existingNoResults = tbody.querySelector('.no-results-row');
-
-    if (existingNoResults) {
-
-        existingNoResults.remove();
-
-    }
-
-
-
-    // Show "no results" message if no rows are visible
-
-    if (visibleCount === 0) {
-
-        const noResultsRow = document.createElement('tr');
-
-        noResultsRow.className = 'no-results-row';
-
-        noResultsRow.innerHTML = `
-
-            <td colspan="12" style="text-align: center; padding: 40px; font-size: 18px; color: rgba(255, 255, 255, 0.6);">
-
-                <i class="fas fa-search" style="font-size: 48px; margin-bottom: 15px; display: block;"></i>
-
-                No results found
-
-            </td>
-
-        `;
-
-        tbody.appendChild(noResultsRow);
-
-    }
-
-
-
-    // Update total count badge to show filtered count
-
-    document.getElementById('totalBadge').textContent = `Total: ${visibleCount}`;
-
 }
 
-
-
-// Auto-save on input change (optional - saves to localStorage)
-
-document.addEventListener('input', function (e) {
-
-    if (e.target.matches('.sno-input, .efile-input, .contractor-input, .approved-date-input, .approved-amount-input, .bill-frequency-input, .bill-date-input, .bill-due-date-input, .bill-paid-date-input, .paid-amount-input')) {
-
-        // Debounce auto-save
-
-        clearTimeout(window.autoSaveTimeout);
-
-        window.autoSaveTimeout = setTimeout(() => {
-
-            saveDataToStorage();
-
-        }, 1000);
-
+// Undo function
+function undo() {
+    if (historyIndex > 0) {
+        historyIndex--;
+        restoreState(history[historyIndex]);
+        updateUndoRedoButtons();
     }
-
-});
-
-
-
-// Auto-save on file change
-
-document.addEventListener('change', function (e) {
-
-    if (e.target.matches('.attachment-input')) {
-
-        // Debounce auto-save
-
-        clearTimeout(window.autoSaveTimeout);
-
-        window.autoSaveTimeout = setTimeout(() => {
-
-            saveDataToStorage();
-
-        }, 1000);
-
-    }
-
-});
-
-
-
-// Arrow Key Navigation Function
-function setupArrowKeyNavigation() {
-    document.addEventListener('keydown', function (e) {
-        // Only handle arrow keys when focus is on an input/select element
-        if (!['input', 'select'].includes(e.target.tagName.toLowerCase())) {
-            return;
-        }
-
-        // Handle Enter key in S.NO field to add new row
-        if (e.key === 'Enter' && e.target.classList.contains('sno-input')) {
-            e.preventDefault();
-            addRow(); // Call the addRow function
-            return;
-        }
-
-        // Get all focusable elements in the table
-        const focusableElements = document.querySelectorAll('.data-table input, .data-table select');
-        const currentIndex = Array.from(focusableElements).indexOf(e.target);
-
-        if (currentIndex === -1) return;
-
-        let nextIndex = -1;
-
-        switch (e.key) {
-            case 'ArrowUp':
-                e.preventDefault();
-                // Move to same column in previous row
-                const currentCell = e.target.closest('td');
-                const currentRow = e.target.closest('tr');
-                const previousRow = currentRow.previousElementSibling;
-                if (previousRow && currentCell) {
-                    const columnIndex = Array.from(currentRow.cells).indexOf(currentCell);
-                    const targetCell = previousRow.cells[columnIndex];
-                    if (targetCell) {
-                        const targetInput = targetCell.querySelector('input, select');
-                        if (targetInput) {
-                            targetInput.focus();
-                            if (targetInput.select) targetInput.select();
-                        }
-                    }
-                }
-                break;
-
-            case 'ArrowDown':
-                e.preventDefault();
-                // Move to same column in next row
-                const currentCellDown = e.target.closest('td');
-                const currentRowDown = e.target.closest('tr');
-                const nextRow = currentRowDown.nextElementSibling;
-                if (nextRow && currentCellDown) {
-                    const columnIndex = Array.from(currentRowDown.cells).indexOf(currentCellDown);
-                    const targetCell = nextRow.cells[columnIndex];
-                    if (targetCell) {
-                        const targetInput = targetCell.querySelector('input, select');
-                        if (targetInput) {
-                            targetInput.focus();
-                            if (targetInput.select) targetInput.select();
-                        }
-                    }
-                }
-                break;
-
-            case 'ArrowLeft':
-                e.preventDefault();
-                // Move to previous focusable element
-                if (currentIndex > 0) {
-                    nextIndex = currentIndex - 1;
-                    focusableElements[nextIndex].focus();
-                    if (focusableElements[nextIndex].select) focusableElements[nextIndex].select();
-                }
-                break;
-
-            case 'ArrowRight':
-                e.preventDefault();
-                // Move to next focusable element
-                if (currentIndex < focusableElements.length - 1) {
-                    nextIndex = currentIndex + 1;
-                    focusableElements[nextIndex].focus();
-                    if (focusableElements[nextIndex].select) focusableElements[nextIndex].select();
-                }
-                break;
-        }
-    });
 }
 
-// Undo/Redo System Functions
+// Redo function
+function redo() {
+    if (historyIndex < history.length - 1) {
+        historyIndex++;
+        restoreState(history[historyIndex]);
+        updateUndoRedoButtons();
+    }
+}
+
+// Update undo/redo button states
+function updateUndoRedoButtons() {
+    const undoBtn = document.getElementById('undoBtn');
+    const redoBtn = document.getElementById('redoBtn');
+    
+    if (undoBtn) undoBtn.disabled = historyIndex <= 0;
+    if (redoBtn) redoBtn.disabled = historyIndex >= history.length - 1;
+}
 
 // Save current state to history
 function saveState() {
     const currentState = getTableData();
     
-    // Remove any states after current index (for new actions)
+    // Remove any states after current index
     history = history.slice(0, historyIndex + 1);
     
     // Add new state
@@ -2293,12 +937,7 @@ function getTableData() {
             contractor: row.querySelector('.contractor-input').value,
             approvedDate: row.querySelector('.approved-date-input').value,
             approvedAmount: row.querySelector('.approved-amount-input').value,
-            billFrequency: row.querySelector('.bill-frequency-select').value,
-            billDate: row.querySelector('.bill-date-input').value,
-            billDueDate: row.querySelector('.bill-due-date-input').value,
-            billPaidDate: row.querySelector('.bill-paid-date-input').value,
-            paidAmount: row.querySelector('.paid-amount-input').value,
-            attachment: row.querySelector('.attachment-input').files[0]?.name || ''
+            frequency: row.querySelector('.frequency-input').value
         };
         data.push(rowData);
     });
@@ -2322,98 +961,391 @@ function restoreState(stateString) {
                 <input type="text" class="sno-input" placeholder="Enter S.No" value="${rowData.sno}">
             </td>
             <td>
-                <input type="text" class="efile-input" placeholder="Enter E-File" value="${rowData.efile}">
+                <input type="text" class="efile-no-input" placeholder="Enter Efile No" value="${rowData.efileNo || ''}">
             </td>
             <td>
                 <input type="text" class="contractor-input" placeholder="Enter Contractor" value="${rowData.contractor}">
             </td>
             <td>
-                <input type="date" class="approved-date-input" value="${rowData.approvedDate}">
+                <input type="date" class="start-date-input" value="${rowData.startDate || ''}">
             </td>
             <td>
-                <input type="text" class="approved-amount-input" placeholder="Enter Approved Amount" value="${rowData.approvedAmount}">
+                <input type="date" class="end-date-input" value="${rowData.endDate || ''}">
             </td>
             <td>
-                <select class="bill-frequency-select">
+                <span class="duration-display">${rowData.duration || '-'}</span>
+            </td>
+            <td>
+                <input type="text" class="handle-by-input" placeholder="Enter Handle By" value="${rowData.handleBy || ''}">
+            </td>
+            <td>
+                <select class="frequency-select">
                     <option value="">Select Frequency</option>
-                    <option value="0.00" ${rowData.billFrequency === '0.00' ? 'selected' : ''}>0.00</option>
-                    <option value="0.25" ${rowData.billFrequency === '0.25' ? 'selected' : ''}>0.25</option>
-                    <option value="0.50" ${rowData.billFrequency === '0.50' ? 'selected' : ''}>0.50</option>
-                    <option value="0.75" ${rowData.billFrequency === '0.75' ? 'selected' : ''}>0.75</option>
-                    <option value="1.00" ${rowData.billFrequency === '1.00' ? 'selected' : ''}>1.00</option>
+                    <option value="yearly" ${rowData.frequency === 'yearly' ? 'selected' : ''}>Yearly</option>
+                    <option value="half-yearly" ${rowData.frequency === 'half-yearly' ? 'selected' : ''}>Half-Yearly</option>
+                    <option value="quarterly" ${rowData.frequency === 'quarterly' ? 'selected' : ''}>Quarterly</option>
+                    <option value="monthly" ${rowData.frequency === 'monthly' ? 'selected' : ''}>Monthly</option>
                 </select>
-            </td>
-            <td>
-                <input type="date" class="bill-date-input" value="${rowData.billDate}">
-            </td>
-            <td>
-                <input type="date" class="bill-due-date-input" value="${rowData.billDueDate}">
-            </td>
-            <td>
-                <input type="date" class="bill-paid-date-input" value="${rowData.billPaidDate}">
-            </td>
-            <td>
-                <input type="text" class="paid-amount-input" placeholder="Enter Paid Amount" value="${rowData.paidAmount}">
-            </td>
-            <td>
-                <input type="file" class="attachment-input" accept=".pdf,.doc,.docx,.xls,.xlsx">
-                ${rowData.attachment ? `<span class="attachment-name">${rowData.attachment}</span>` : ''}
-            </td>
-            <td>
-                <button class="delete-btn" onclick="deleteRow(this)">
-                    <i class="fas fa-trash"></i>
-                </button>
             </td>
         `;
         tbody.appendChild(row);
     });
     
     updateTotalCount();
-}
-
-// Undo function
-function undo() {
-    if (historyIndex > 0) {
-        historyIndex--;
-        restoreState(history[historyIndex]);
-        updateTotalCount(); // Fix: Update count after undo
-        updateUndoRedoButtons();
-    }
-}
-
-// Redo function
-function redo() {
-    if (historyIndex < history.length - 1) {
-        historyIndex++;
-        restoreState(history[historyIndex]);
-        updateTotalCount(); // Fix: Update count after redo
-        updateUndoRedoButtons();
-    }
-}
-
-// Update undo/redo button states
-function updateUndoRedoButtons() {
-    const undoBtn = document.getElementById('undoBtn');
-    const redoBtn = document.getElementById('redoBtn');
     
-    undoBtn.disabled = historyIndex <= 0;
-    redoBtn.disabled = historyIndex >= history.length - 1;
+    // Re-assign sequential S.NO numbers after restoring state
+    assignSequentialSNO();
 }
 
-// Add keyboard shortcuts for undo/redo
-document.addEventListener('keydown', function (e) {
-    // Ctrl+Z for undo
-    if (e.ctrlKey && e.key === 'z' && !e.shiftKey) {
-        e.preventDefault();
-        undo();
+// Navigate through table cells using arrow keys
+function navigateTable(direction) {
+    const activeElement = document.activeElement;
+    const tbody = document.getElementById('tableBody');
+    
+    // Check if we're in an input/select element within the table
+    if (!activeElement || !activeElement.closest('#tableBody')) {
+        // If not focused on table, focus on first input of first row
+        const firstRow = tbody.querySelector('tr');
+        if (firstRow) {
+            const firstInput = firstRow.querySelector('input, select');
+            if (firstInput) {
+                firstInput.focus();
+                highlightCell(firstInput);
+            }
+        }
+        return;
     }
     
+    const currentRow = activeElement.closest('tr');
+    const currentCell = activeElement.closest('td');
+    const allRows = Array.from(tbody.querySelectorAll('tr'));
+    const currentRowIndex = allRows.indexOf(currentRow);
+    const allCells = Array.from(currentRow.querySelectorAll('td'));
+    const currentCellIndex = allCells.indexOf(currentCell);
+    
+    let nextElement = null;
+    let nextRowIndex = currentRowIndex;
+    let nextCellIndex = currentCellIndex;
+    
+    switch (direction) {
+        case 'ArrowUp':
+            nextRowIndex = Math.max(0, currentRowIndex - 1);
+            nextCellIndex = currentCellIndex;
+            break;
+        case 'ArrowDown':
+            nextRowIndex = Math.min(allRows.length - 1, currentRowIndex + 1);
+            nextCellIndex = currentCellIndex;
+            break;
+        case 'ArrowLeft':
+            nextRowIndex = currentRowIndex;
+            nextCellIndex = Math.max(0, currentCellIndex - 1);
+            break;
+        case 'ArrowRight':
+            nextRowIndex = currentRowIndex;
+            nextCellIndex = Math.min(allCells.length - 1, currentCellIndex + 1);
+            break;
+    }
+    
+    // Get the next row and cell
+    const nextRow = allRows[nextRowIndex];
+    if (nextRow) {
+        const nextCell = nextRow.querySelectorAll('td')[nextCellIndex];
+        if (nextCell) {
+            // Find the next input/select element in the cell
+            nextElement = nextCell.querySelector('input, select');
+        }
+    }
+    
+    // Focus on the next element
+    if (nextElement) {
+        nextElement.focus();
+        highlightCell(nextElement);
+        
+        // Scroll the element into view if needed
+        nextElement.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'nearest', 
+            inline: 'nearest' 
+        });
+    }
+}
+
+// Highlight the current cell for visual feedback
+function highlightCell(element) {
+    // Remove previous highlights
+    document.querySelectorAll('.cell-highlight').forEach(cell => {
+        cell.classList.remove('cell-highlight');
+    });
+    
+    // Add highlight to current cell
+    const cell = element.closest('td');
+    if (cell) {
+        cell.classList.add('cell-highlight');
+    }
+}
+
+// Add keyboard shortcuts for undo/redo and navigation
+document.addEventListener('keydown', function(e) {
     // Ctrl+Y or Ctrl+Shift+Z for redo
     if ((e.ctrlKey && e.key === 'y') || (e.ctrlKey && e.shiftKey && e.key === 'z')) {
         e.preventDefault();
         redo();
     }
+    
+    // Arrow key navigation for table rows
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        e.preventDefault();
+        navigateTable(e.key);
+    }
 });
 
+// Data Persistence Functions
+function saveDataToStorage() {
+    try {
+        const tableData = getTableData();
+        localStorage.setItem(BILL_TRACKER_DATA_KEY, JSON.stringify(tableData));
+        localStorage.setItem(BILL_TRACKER_HISTORY_KEY, JSON.stringify(history));
+        localStorage.setItem(BILL_TRACKER_HISTORY_INDEX_KEY, historyIndex.toString());
+        
+        // Also save to analytics data
+        saveToAnalyticsData(tableData);
+        
+        console.log('Data saved to localStorage');
+    } catch (error) {
+        console.error('Error saving data to localStorage:', error);
+    }
+}
 
+function loadDataFromStorage() {
+    try {
+        const savedData = localStorage.getItem(BILL_TRACKER_DATA_KEY);
+        const savedHistory = localStorage.getItem(BILL_TRACKER_HISTORY_KEY);
+        const savedHistoryIndex = localStorage.getItem(BILL_TRACKER_HISTORY_INDEX_KEY);
+        
+        if (savedData) {
+            const tableData = JSON.parse(savedData);
+            restoreTableFromData(tableData);
+            console.log('Data loaded from localStorage');
+        }
+        
+        if (savedHistory) {
+            history = JSON.parse(savedHistory);
+        }
+        
+        if (savedHistoryIndex) {
+            historyIndex = parseInt(savedHistoryIndex);
+        }
+    } catch (error) {
+        console.error('Error loading data from localStorage:', error);
+    }
+}
 
+function restoreTableFromData(data) {
+    const tbody = document.getElementById('tableBody');
+    tbody.innerHTML = '';
+    
+    data.forEach(rowData => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>
+                <input type="text" class="sno-input" placeholder="S.NO" value="${rowData.sno}">
+            </td>
+            <td>
+                <input type="text" class="efile-no-input" placeholder="Enter Efile No" value="${rowData.efileNo}">
+            </td>
+            <td>
+                <input type="text" class="contractor-input" placeholder="Enter Contractor" value="${rowData.contractor}">
+            </td>
+            <td>
+                <input type="date" class="start-date-input" value="${rowData.startDate}">
+            </td>
+            <td>
+                <input type="date" class="end-date-input" value="${rowData.endDate}">
+            </td>
+            <td>
+                <input type="text" class="duration-input" placeholder="Duration" value="${rowData.duration}" readonly>
+            </td>
+            <td>
+                <input type="text" class="handle-by-input" placeholder="Enter Handle By" value="${rowData.handleBy}">
+            </td>
+            <td>
+                <select class="frequency-select">
+                    <option value="">Select Frequency</option>
+                    <option value="yearly" ${rowData.frequency === 'yearly' ? 'selected' : ''}>Yearly</option>
+                    <option value="half-yearly" ${rowData.frequency === 'half-yearly' ? 'selected' : ''}>Half-Yearly</option>
+                    <option value="quarterly" ${rowData.frequency === 'quarterly' ? 'selected' : ''}>Quarterly</option>
+                    <option value="monthly" ${rowData.frequency === 'monthly' ? 'selected' : ''}>Monthly</option>
+                </select>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+    
+    // Recalculate durations
+    updateAllDurations();
+}
+
+function saveToAnalyticsData(tableData) {
+    try {
+        // Get existing analytics data or create new
+        let analyticsData = localStorage.getItem(ANALYTICS_DATA_KEY);
+        analyticsData = analyticsData ? JSON.parse(analyticsData) : {};
+        
+        // Update bill tracker data with exact current data
+        analyticsData.billTracker = {
+            data: tableData,
+            lastUpdated: new Date().toISOString(),
+            count: tableData.length
+        };
+        
+        // Also save to legacy key for compatibility
+        localStorage.setItem(BILL_TRACKER_DATA_KEY, JSON.stringify(tableData));
+        
+        localStorage.setItem(ANALYTICS_DATA_KEY, JSON.stringify(analyticsData));
+        console.log('Bill tracker data saved to analytics:', tableData.length, 'records');
+        
+        // Trigger analytics update if on analytics page
+        if (window.location.pathname.includes('analytics.html')) {
+            setTimeout(() => {
+                if (typeof loadAnalyticsData === 'function') {
+                    loadAnalyticsData();
+                }
+            }, 100);
+        }
+    } catch (error) {
+        console.error('Error saving to analytics data:', error);
+    }
+}
+
+// Live Updates Functions
+function setupLiveUpdates() {
+    // Save data on any input change
+    document.addEventListener('input', function(e) {
+        if (e.target.matches('input, select')) {
+            saveDataToStorage();
+            updateTotalCount();
+        }
+    });
+    
+    // Save data on row deletion
+    document.addEventListener('click', function(e) {
+        if (e.target.matches('.delete-row-btn')) {
+            setTimeout(() => {
+                saveDataToStorage();
+                updateTotalCount();
+            }, 100);
+        }
+    });
+    
+    // Listen for storage changes from other tabs/pages
+    window.addEventListener('storage', function(e) {
+        if (e.key === ANALYTICS_DATA_KEY && e.newValue) {
+            // If on analytics page, reload data when bill tracker updates
+            if (window.location.pathname.includes('analytics.html')) {
+                setTimeout(() => {
+                    if (typeof loadAnalyticsData === 'function') {
+                        loadAnalyticsData();
+                    }
+                }, 100);
+            }
+        }
+    });
+}
+
+// Override saveData function to include localStorage
+const originalSaveData = saveData;
+saveData = function() {
+    originalSaveData();
+    saveDataToStorage();
+    showNotification('Data saved successfully!', 'success');
+};
+
+// Override addRow function to include localStorage
+const originalAddRow = addRow;
+addRow = function() {
+    originalAddRow();
+    saveDataToStorage();
+};
+
+// Override deleteRow function to include localStorage
+const originalDeleteRow = deleteRow;
+deleteRow = function(btn) {
+    originalDeleteRow(btn);
+    setTimeout(() => {
+        saveDataToStorage();
+    }, 100);
+};
+
+// Notification function
+function showNotification(message, type = 'info') {
+    // Update notification badge
+    const badge = document.getElementById('notificationBadge');
+    if (badge) {
+        const currentCount = parseInt(badge.textContent) || 0;
+        badge.textContent = currentCount + 1;
+        
+        // Show notification animation
+        badge.style.animation = 'none';
+        setTimeout(() => {
+            badge.style.animation = 'pulse 0.5s ease-in-out';
+        }, 10);
+    }
+    
+    // Create notification toast
+    const toast = document.createElement('div');
+    toast.className = `notification-toast ${type}`;
+    toast.textContent = message;
+    toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${type === 'success' ? 'linear-gradient(135deg, #2ecc71, #27ae60)' : 
+                    type === 'error' ? 'linear-gradient(135deg, #e74c3c, #c0392b)' : 
+                    'linear-gradient(135deg, #3498db, #2980b9)'};
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        z-index: 10000;
+        font-size: 14px;
+        font-weight: 500;
+        animation: slideIn 0.3s ease-out;
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // Remove toast after 3 seconds
+    setTimeout(() => {
+        toast.style.animation = 'slideOut 0.3s ease-in';
+        setTimeout(() => {
+            document.body.removeChild(toast);
+        }, 300);
+    }, 3000);
+}
+
+// Add CSS animations
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    @keyframes slideOut {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+    }
+`;
+document.head.appendChild(style);
