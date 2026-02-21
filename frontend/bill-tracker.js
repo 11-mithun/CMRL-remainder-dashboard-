@@ -55,6 +55,9 @@ function setupEventListeners() {
             filterTable(e.target.value);
         });
     }
+    
+    // Initialize table filters dropdown
+    initializeTableFilters();
 }
 
 // Calculate duration between start and end date
@@ -428,6 +431,26 @@ function processImportedData(jsonData) {
                     <option value="monthly" ${frequency === 'monthly' ? 'selected' : ''}>Monthly</option>
                 </select>
             </td>
+            <td>
+                <select class="months-select">
+                    <option value="">Select Month</option>
+                    <option value="January" ${(row['Months'] || row['months']) === 'January' ? 'selected' : ''}>January</option>
+                    <option value="February" ${(row['Months'] || row['months']) === 'February' ? 'selected' : ''}>February</option>
+                    <option value="March" ${(row['Months'] || row['months']) === 'March' ? 'selected' : ''}>March</option>
+                    <option value="April" ${(row['Months'] || row['months']) === 'April' ? 'selected' : ''}>April</option>
+                    <option value="May" ${(row['Months'] || row['months']) === 'May' ? 'selected' : ''}>May</option>
+                    <option value="June" ${(row['Months'] || row['months']) === 'June' ? 'selected' : ''}>June</option>
+                    <option value="July" ${(row['Months'] || row['months']) === 'July' ? 'selected' : ''}>July</option>
+                    <option value="August" ${(row['Months'] || row['months']) === 'August' ? 'selected' : ''}>August</option>
+                    <option value="September" ${(row['Months'] || row['months']) === 'September' ? 'selected' : ''}>September</option>
+                    <option value="October" ${(row['Months'] || row['months']) === 'October' ? 'selected' : ''}>October</option>
+                    <option value="November" ${(row['Months'] || row['months']) === 'November' ? 'selected' : ''}>November</option>
+                    <option value="December" ${(row['Months'] || row['months']) === 'December' ? 'selected' : ''}>December</option>
+                </select>
+            </td>
+            <td>
+                <input type="text" class="pending-input" placeholder="Enter Pending" value="${row['Pending'] || row['pending'] || ''}">
+            </td>
         `;
         
         tbody.appendChild(tableRow);
@@ -630,6 +653,26 @@ function addRow() {
                 <option value="monthly">Monthly</option>
             </select>
         </td>
+        <td>
+            <select class="months-select">
+                <option value="">Select Month</option>
+                <option value="January">January</option>
+                <option value="February">February</option>
+                <option value="March">March</option>
+                <option value="April">April</option>
+                <option value="May">May</option>
+                <option value="June">June</option>
+                <option value="July">July</option>
+                <option value="August">August</option>
+                <option value="September">September</option>
+                <option value="October">October</option>
+                <option value="November">November</option>
+                <option value="December">December</option>
+            </select>
+        </td>
+        <td>
+            <input type="text" class="pending-input" placeholder="Enter Pending">
+        </td>
     `;
     
     tbody.appendChild(row);
@@ -647,7 +690,7 @@ function deleteRow(btn) {
 }
 
 // Save data
-function saveData() {
+async function saveData() {
     const tbody = document.getElementById('tableBody');
     const rows = tbody.querySelectorAll('tr');
     
@@ -658,17 +701,22 @@ function saveData() {
     
     const data = [];
     
-    rows.forEach(row => {
+    rows.forEach((row, index) => {
         const sno = row.querySelector('.sno-input')?.value || '';
         const efileNo = row.querySelector('.efile-no-input')?.value || '';
         const contractor = row.querySelector('.contractor-input')?.value || '';
         const startDate = row.querySelector('.start-date-input')?.value || '';
         const endDate = row.querySelector('.end-date-input')?.value || '';
-        const duration = row.querySelector('.duration-display')?.textContent || '-';
+        const duration = row.querySelector('.duration-input')?.value || '';
         const handleBy = row.querySelector('.handle-by-input')?.value || '';
         const frequency = row.querySelector('.frequency-select')?.value || '';
+        const months = row.querySelector('.months-select')?.value || '';
+        const pending = row.querySelector('.pending-input')?.value || '';
         
-        if (sno || efileNo || contractor || startDate || endDate || handleBy || frequency) {
+        // DEBUG: Log data collection
+        console.log(`Save Row ${index}: EFILE="${efileNo}", CONTRACTOR="${contractor}", FREQUENCY="${frequency}", MONTHS="${months}"`);
+
+        if (sno || efileNo || contractor || startDate || endDate || handleBy || frequency || months || pending) {
             data.push({
                 sno,
                 efileNo,
@@ -677,14 +725,68 @@ function saveData() {
                 endDate,
                 duration,
                 handleBy,
-                frequency
+                frequency,
+                months,
+                pending
             });
         }
     });
-    
-    // Here you would normally send data to server
-    console.log('Saving data:', data);
-    alert('Data saved successfully!');
+
+    // Save to API or localStorage
+    try {
+        await saveDataToStorage();
+        alert('Data saved successfully!');
+    } catch (error) {
+        alert('Error saving data. Please try again.');
+        console.error('Save error:', error);
+    }
+}
+
+// Save data to API (with localStorage fallback)
+async function saveDataToStorage() {
+    const tbody = document.getElementById('tableBody');
+    const rows = tbody.querySelectorAll('tr');
+    const dataToSave = [];
+
+    for (const row of rows) {
+        const sno = row.querySelector('.sno-input')?.value || '';
+        const efileNo = row.querySelector('.efile-no-input')?.value || '';
+        const contractor = row.querySelector('.contractor-input')?.value || '';
+        const startDate = row.querySelector('.start-date-input')?.value || '';
+        const endDate = row.querySelector('.end-date-input')?.value || '';
+        const duration = row.querySelector('.duration-input')?.value || '';
+        const handleBy = row.querySelector('.handle-by-input')?.value || '';
+        const frequency = row.querySelector('.frequency-select')?.value || '';
+        const months = row.querySelector('.months-select')?.value || '';
+        const pending = row.querySelector('.pending-input')?.value || '';
+
+        dataToSave.push({
+            sno,
+            efileNo,
+            contractor,
+            startDate,
+            endDate,
+            duration,
+            handleBy,
+            frequency,
+            months,
+            pending
+        });
+    }
+
+    // Try to save to API, fallback to localStorage
+    try {
+        if (typeof billTrackerAPI !== 'undefined') {
+            await billTrackerAPI.save(dataToSave);
+            console.log('Data saved to API successfully');
+        } else {
+            localStorage.setItem(BILL_TRACKER_DATA_KEY, JSON.stringify(dataToSave));
+            console.log('Data saved to localStorage (API not available)');
+        }
+    } catch (error) {
+        console.error('Failed to save to API, using localStorage:', error);
+        localStorage.setItem(BILL_TRACKER_DATA_KEY, JSON.stringify(dataToSave));
+    }
 }
 
 // Refresh page
@@ -726,6 +828,8 @@ function printTable() {
                         <th>DURATION</th>
                         <th>HANDLE BY</th>
                         <th>FREQUENCY</th>
+                        <th>MONTHS</th>
+                        <th>PENDING</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -737,9 +841,11 @@ function printTable() {
         const contractor = row.querySelector('.contractor-input')?.value || '';
         const startDate = row.querySelector('.start-date-input')?.value || '';
         const endDate = row.querySelector('.end-date-input')?.value || '';
-        const duration = row.querySelector('.duration-display')?.textContent || '-';
+        const duration = row.querySelector('.duration-input')?.value || '-';
         const handleBy = row.querySelector('.handle-by-input')?.value || '';
         const frequency = row.querySelector('.frequency-select')?.value || '';
+        const months = row.querySelector('.months-select')?.value || '';
+        const pending = row.querySelector('.pending-input')?.value || '';
         
         printContent += `
                     <tr>
@@ -751,6 +857,8 @@ function printTable() {
                         <td>${duration}</td>
                         <td>${handleBy}</td>
                         <td>${frequency}</td>
+                        <td>${months}</td>
+                        <td>${pending}</td>
                     </tr>
         `;
     });
@@ -790,7 +898,9 @@ function exportToExcel() {
         'END DATE',
         'DURATION',
         'HANDLE BY',
-        'FREQUENCY'
+        'FREQUENCY',
+        'MONTHS',
+        'PENDING'
     ]);
     
     rows.forEach(row => {
@@ -799,9 +909,11 @@ function exportToExcel() {
         const contractor = row.querySelector('.contractor-input')?.value || '';
         const startDate = row.querySelector('.start-date-input')?.value || '';
         const endDate = row.querySelector('.end-date-input')?.value || '';
-        const duration = row.querySelector('.duration-display')?.textContent || '-';
+        const duration = row.querySelector('.duration-input')?.value || '-';
         const handleBy = row.querySelector('.handle-by-input')?.value || '';
         const frequency = row.querySelector('.frequency-select')?.value || '';
+        const months = row.querySelector('.months-select')?.value || '';
+        const pending = row.querySelector('.pending-input')?.value || '';
         
         exportData.push([
             sno,
@@ -811,7 +923,9 @@ function exportToExcel() {
             endDate,
             duration,
             handleBy,
-            frequency
+            frequency,
+            months,
+            pending
         ]);
     });
     
@@ -842,13 +956,15 @@ function filterTable(searchTerm) {
     
     rows.forEach(row => {
         const sno = row.querySelector('.sno-input')?.value.toLowerCase() || '';
-        const efile = row.querySelector('.efile-input')?.value.toLowerCase() || '';
+        const efile = row.querySelector('.efile-no-input')?.value.toLowerCase() || '';
         const contractor = row.querySelector('.contractor-input')?.value.toLowerCase() || '';
         const startDate = row.querySelector('.start-date-input')?.value.toLowerCase() || '';
         const endDate = row.querySelector('.end-date-input')?.value.toLowerCase() || '';
-        const duration = row.querySelector('.duration-display')?.textContent.toLowerCase() || '';
+        const duration = row.querySelector('.duration-input')?.value.toLowerCase() || '';
         const handleBy = row.querySelector('.handle-by-input')?.value.toLowerCase() || '';
         const frequency = row.querySelector('.frequency-select')?.value.toLowerCase() || '';
+        const months = row.querySelector('.months-select')?.value.toLowerCase() || '';
+        const pending = row.querySelector('.pending-input')?.value.toLowerCase() || '';
         
         const matches = sno.includes(searchTerm.toLowerCase()) || 
                        efile.includes(searchTerm.toLowerCase()) || 
@@ -857,7 +973,9 @@ function filterTable(searchTerm) {
                        endDate.includes(searchTerm.toLowerCase()) || 
                        duration.includes(searchTerm.toLowerCase()) || 
                        handleBy.includes(searchTerm.toLowerCase()) || 
-                       frequency.includes(searchTerm.toLowerCase());
+                       frequency.includes(searchTerm.toLowerCase()) ||
+                       months.includes(searchTerm.toLowerCase()) ||
+                       pending.includes(searchTerm.toLowerCase());
         
         row.style.display = matches ? '' : 'none';
     });
@@ -1228,24 +1346,24 @@ function saveToAnalyticsData(tableData) {
 // Live Updates Functions
 function setupLiveUpdates() {
     // Save data on any input change with debounce
-    let saveTimeout;
     document.addEventListener('input', function(e) {
-        if (e.target.matches('input, select')) {
-            clearTimeout(saveTimeout);
-            saveTimeout = setTimeout(() => {
+        if (e.target.matches('input, select, textarea')) {
+            // Debounce auto-save
+            clearTimeout(window.autoSaveTimeout);
+            window.autoSaveTimeout = setTimeout(() => {
                 saveDataToStorage();
-                updateTotalCount();
-            }, 500); // Wait 500ms after typing stops
+            }, 1000);
         }
     });
     
     // Save data on row deletion
     document.addEventListener('click', function(e) {
         if (e.target.matches('.delete-row-btn')) {
-            setTimeout(() => {
+            // Debounce auto-save
+            clearTimeout(window.autoSaveTimeout);
+            window.autoSaveTimeout = setTimeout(() => {
                 saveDataToStorage();
-                updateTotalCount();
-            }, 100);
+            }, 1000);
         }
     });
     
@@ -1357,3 +1475,184 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
+
+// Initialize table filters dropdown
+function initializeTableFilters() {
+    const filterDropdownBtn = document.getElementById('filterDropdownBtn');
+    const filterDropdownMenu = document.getElementById('filterDropdownMenu');
+    const applyFiltersBtn = document.getElementById('applyFiltersBtn');
+    const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+    
+    // Toggle dropdown
+    if (filterDropdownBtn) {
+        filterDropdownBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const isOpen = filterDropdownMenu.classList.contains('show');
+            
+            // Close any other open dropdowns
+            document.querySelectorAll('.filter-dropdown-menu').forEach(menu => {
+                if (menu !== filterDropdownMenu) {
+                    menu.classList.remove('show');
+                }
+            });
+            
+            if (!isOpen) {
+                filterDropdownMenu.classList.add('show');
+                filterDropdownBtn.classList.add('active');
+            } else {
+                filterDropdownBtn.classList.remove('active');
+            }
+        });
+    }
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.filter-dropdown-container')) {
+            filterDropdownMenu.classList.remove('show');
+            filterDropdownBtn.classList.remove('active');
+        }
+    });
+    
+    // Apply filters button
+    if (applyFiltersBtn) {
+        applyFiltersBtn.addEventListener('click', function() {
+            applyNewFilters();
+            filterDropdownMenu.classList.remove('show');
+            filterDropdownBtn.classList.remove('active');
+        });
+    }
+    
+    // Clear filters button
+    if (clearFiltersBtn) {
+        clearFiltersBtn.addEventListener('click', function() {
+            clearNewFilters();
+            filterDropdownMenu.classList.remove('show');
+            filterDropdownBtn.classList.remove('active');
+        });
+    }
+}
+
+// Apply filters with clean logic
+function applyNewFilters() {
+    const selectedColumns = getSelectedColumns();
+    const tbody = document.getElementById('tableBody');
+    const rows = tbody.querySelectorAll('tr');
+    
+    if (selectedColumns.length === 0) {
+        // If no columns selected, show all rows
+        rows.forEach(row => {
+            row.style.display = '';
+        });
+        updateFilterStatus(false);
+        return;
+    }
+    
+    // Hide all rows first
+    rows.forEach(row => {
+        row.style.display = 'none';
+    });
+    
+    // Show rows that have data in selected columns
+    rows.forEach(row => {
+        let shouldShow = false;
+        
+        selectedColumns.forEach(column => {
+            let cellValue = '';
+            
+            switch(column) {
+                case 'sno':
+                    cellValue = row.querySelector('.sno-input')?.value || '';
+                    break;
+                case 'efile':
+                    cellValue = row.querySelector('.efile-no-input')?.value || '';
+                    break;
+                case 'contractor':
+                    cellValue = row.querySelector('.contractor-input')?.value || '';
+                    break;
+                case 'startDate':
+                    cellValue = row.querySelector('.start-date-input')?.value || '';
+                    break;
+                case 'endDate':
+                    cellValue = row.querySelector('.end-date-input')?.value || '';
+                    break;
+                case 'duration':
+                    cellValue = row.querySelector('.duration-input')?.value || '';
+                    break;
+                case 'handleBy':
+                    cellValue = row.querySelector('.handle-by-input')?.value || '';
+                    break;
+                case 'frequency':
+                    cellValue = row.querySelector('.frequency-select')?.value || '';
+                    break;
+                case 'months':
+                    cellValue = row.querySelector('.months-select')?.value || '';
+                    break;
+                case 'pending':
+                    cellValue = row.querySelector('.pending-input')?.value || '';
+                    break;
+            }
+            
+            if (cellValue.trim() !== '') {
+                shouldShow = true;
+            }
+        });
+        
+        if (shouldShow) {
+            row.style.display = '';
+        }
+    });
+    
+    updateFilterStatus(true);
+    updateTotalCount();
+}
+
+// Clear all filters
+function clearNewFilters() {
+    // Uncheck all filter checkboxes
+    const filterCheckboxes = document.querySelectorAll('.filter-checkbox');
+    filterCheckboxes.forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    
+    // Show all rows
+    const tbody = document.getElementById('tableBody');
+    const rows = tbody.querySelectorAll('tr');
+    rows.forEach(row => {
+        row.style.display = '';
+    });
+    
+    updateFilterStatus(false);
+    updateTotalCount();
+}
+
+// Helper: Get selected column names
+function getSelectedColumns() {
+    const selectedColumns = [];
+    const allFilterCheckboxes = document.querySelectorAll('.filter-checkbox');
+    
+    allFilterCheckboxes.forEach((checkbox) => {
+        if (checkbox.checked) {
+            selectedColumns.push(checkbox.dataset.column);
+        }
+    });
+    
+    return selectedColumns;
+}
+
+// Update filter status UI
+function updateFilterStatus(isFiltered) {
+    const filterBtn = document.getElementById('filterDropdownBtn');
+    const totalBadge = document.getElementById('totalBadge');
+    
+    if (isFiltered) {
+        filterBtn.classList.add('filtered');
+        if (totalBadge) {
+            totalBadge.classList.add('filtered');
+        }
+    } else {
+        filterBtn.classList.remove('filtered');
+        if (totalBadge) {
+            totalBadge.classList.remove('filtered');
+        }
+    }
+}

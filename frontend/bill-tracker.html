@@ -147,6 +147,70 @@
                         <span class="total-badge" id="totalBadge">Total: 0</span>
                     </div>
 
+                    <div class="table-filters">
+                        <div class="filter-dropdown-container">
+                            <button class="filter-dropdown-btn" id="filterDropdownBtn">
+                                <i class="fas fa-filter"></i>
+                                <span>Filters</span>
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                            <div class="filter-dropdown-menu" id="filterDropdownMenu">
+                                <div class="filter-section">
+                                    <h4>Filter Columns</h4>
+                                    <div class="filter-item">
+                                        <input type="checkbox" class="filter-checkbox" id="filter-sno" data-column="sno">
+                                        <label for="filter-sno">S.NO</label>
+                                    </div>
+                                    <div class="filter-item">
+                                        <input type="checkbox" class="filter-checkbox" id="filter-efile" data-column="efile">
+                                        <label for="filter-efile">EFILE NO</label>
+                                    </div>
+                                    <div class="filter-item">
+                                        <input type="checkbox" class="filter-checkbox" id="filter-contractor" data-column="contractor">
+                                        <label for="filter-contractor">CONTRACTOR</label>
+                                    </div>
+                                    <div class="filter-item">
+                                        <input type="checkbox" class="filter-checkbox" id="filter-startDate" data-column="startDate">
+                                        <label for="filter-startDate">START DATE</label>
+                                    </div>
+                                    <div class="filter-item">
+                                        <input type="checkbox" class="filter-checkbox" id="filter-endDate" data-column="endDate">
+                                        <label for="filter-endDate">END DATE</label>
+                                    </div>
+                                    <div class="filter-item">
+                                        <input type="checkbox" class="filter-checkbox" id="filter-duration" data-column="duration">
+                                        <label for="filter-duration">DURATION</label>
+                                    </div>
+                                    <div class="filter-item">
+                                        <input type="checkbox" class="filter-checkbox" id="filter-handleBy" data-column="handleBy">
+                                        <label for="filter-handleBy">HANDLE BY</label>
+                                    </div>
+                                    <div class="filter-item">
+                                        <input type="checkbox" class="filter-checkbox" id="filter-frequency" data-column="frequency">
+                                        <label for="filter-frequency">FREQUENCY</label>
+                                    </div>
+                                    <div class="filter-item">
+                                        <input type="checkbox" class="filter-checkbox" id="filter-months" data-column="months">
+                                        <label for="filter-months">MONTHS</label>
+                                    </div>
+                                    <div class="filter-item">
+                                        <input type="checkbox" class="filter-checkbox" id="filter-pending" data-column="pending">
+                                        <label for="filter-pending">PENDING</label>
+                                    </div>
+                                </div>
+                                
+                                <div class="filter-actions">
+                                    <button class="apply-filters-btn" id="applyFiltersBtn">
+                                        <i class="fas fa-check"></i> Apply Filters
+                                    </button>
+                                    <button class="clear-filters-btn" id="clearFiltersBtn">
+                                        <i class="fas fa-times"></i> Clear All
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="table-container">
                         <table class="data-table" id="dataTable">
                             <thead>
@@ -159,6 +223,8 @@
                                     <th>DURATION</th>
                                     <th>HANDLE BY</th>
                                     <th>FREQUENCY</th>
+                                    <th>MONTHS</th>
+                                    <th>PENDING</th>
                                 </tr>
                             </thead>
                             <tbody id="tableBody">
