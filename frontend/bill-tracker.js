@@ -73,7 +73,7 @@ function setupEventListeners() {
     }
 }
 
-// Calculate duration between start and end date
+// Calculate duration from current date to end date
 function calculateDuration(event) {
     const row = event.target.closest('tr');
     const startDateInput = row.querySelector('.start-date-input');
@@ -81,31 +81,46 @@ function calculateDuration(event) {
     const durationDisplay = row.querySelector('.duration-display');
     const durationCell = durationDisplay.parentElement;
 
-    if (startDateInput.value && endDateInput.value) {
-        const startDate = new Date(startDateInput.value);
+    if (endDateInput.value) {
         const endDate = new Date(endDateInput.value);
+        const currentDate = new Date();
         
-        // Calculate difference in days
-        const diffTime = endDate - startDate;
+        // Calculate difference in days from current date to end date
+        const diffTime = endDate - currentDate;
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
         if (diffDays < 0) {
-            durationDisplay.textContent = 'Invalid dates';
-            durationDisplay.classList.remove('duration-safe');
-            durationDisplay.classList.add('duration-left');
+            durationDisplay.textContent = 'Expired';
+            durationDisplay.style.color = '#ff4757';
+            durationDisplay.style.padding = '4px 8px';
+            durationDisplay.style.borderRadius = '4px';
+            durationDisplay.style.fontWeight = 'bold';
         } else if (diffDays === 0) {
-            durationDisplay.textContent = 'Same day';
-            durationDisplay.classList.remove('duration-safe');
-            durationDisplay.classList.add('duration-left');
+            durationDisplay.textContent = 'Expires today';
+            durationDisplay.style.color = '#ff4757';
+            durationDisplay.style.padding = '4px 8px';
+            durationDisplay.style.borderRadius = '4px';
+            durationDisplay.style.fontWeight = 'bold';
         } else {
-                durationDisplay.textContent = diffDays;
+                durationDisplay.textContent = diffDays + ' days left';
+                
+                // Color coding based on days left
+                if (diffDays < 30) {
+                    // Red for less than 30 days
+                    durationDisplay.style.color = '#ff4757';
+                } else if (diffDays >= 30 && diffDays <= 90) {
+                    // Yellow for 30-90 days
+                    durationDisplay.style.color = '#ffa502';
+                } else {
+                    // Green for more than 90 days
+                    durationDisplay.style.color = '#2ed573';
+                }
+                
+                durationDisplay.style.padding = '4px 8px';
+                durationDisplay.style.borderRadius = '4px';
+                durationDisplay.style.fontWeight = 'bold';
                 durationDisplay.classList.remove('duration-left');
                 durationDisplay.classList.add('duration-safe');
-
-                // Color coding: red if <= 60 days
-                if (diffDays <= 60) {
-                    durationDisplay.classList.add('duration-left');
-                }
             }
     } else {
         durationDisplay.textContent = '-';
@@ -128,32 +143,48 @@ function updateAllDurations() {
         const endDateInput = row.querySelector('.end-date-input');
         const durationDisplay = row.querySelector('.duration-display');
 
-        if (startDateInput && endDateInput && durationDisplay && 
-            startDateInput.value && endDateInput.value) {
+        if (endDateInput && durationDisplay && 
+            endDateInput.value) {
             
-            const startDate = new Date(startDateInput.value);
             const endDate = new Date(endDateInput.value);
+            const currentDate = new Date();
             
-            const diffTime = endDate - startDate;
+            // Calculate difference in days from current date to end date
+            const diffTime = endDate - currentDate;
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
             if (diffDays < 0) {
-                durationDisplay.textContent = 'Invalid dates';
-                durationDisplay.classList.remove('duration-safe');
-                durationDisplay.classList.add('duration-left');
+                durationDisplay.textContent = 'Expired';
+                durationDisplay.style.color = '#ff4757';
+                durationDisplay.style.padding = '4px 8px';
+                durationDisplay.style.borderRadius = '4px';
+                durationDisplay.style.fontWeight = 'bold';
             } else if (diffDays === 0) {
-                durationDisplay.textContent = 'Same day';
-                durationDisplay.classList.remove('duration-safe');
-                durationDisplay.classList.add('duration-left');
+                durationDisplay.textContent = 'Expires today';
+                durationDisplay.style.color = '#ff4757';
+                durationDisplay.style.padding = '4px 8px';
+                durationDisplay.style.borderRadius = '4px';
+                durationDisplay.style.fontWeight = 'bold';
             } else {
-                durationDisplay.textContent = diffDays;
+                durationDisplay.textContent = diffDays + ' days left';
+                
+                // Color coding based on days left
+                if (diffDays < 30) {
+                    // Red for less than 30 days
+                    durationDisplay.style.color = '#ff4757';
+                } else if (diffDays >= 30 && diffDays <= 90) {
+                    // Yellow for 30-90 days
+                    durationDisplay.style.color = '#ffa502';
+                } else {
+                    // Green for more than 90 days
+                    durationDisplay.style.color = '#2ed573';
+                }
+                
+                durationDisplay.style.padding = '4px 8px';
+                durationDisplay.style.borderRadius = '4px';
+                durationDisplay.style.fontWeight = 'bold';
                 durationDisplay.classList.remove('duration-left');
                 durationDisplay.classList.add('duration-safe');
-
-                // Color coding: red if <= 60 days
-                if (diffDays <= 60) {
-                    durationDisplay.classList.add('duration-left');
-                }
             }
         } else {
             durationDisplay.textContent = '-';
@@ -188,55 +219,79 @@ function startRealTimeDurationUpdates() {
     };
 
     const updateStatus = () => {
-        // Update durations periodically (no current date dependency)
+        // Update durations periodically based on current date
         setInterval(() => {
             updateAllDurations();
-        }, 300000); // Update every 5 minutes instead of every minute
+        }, 300000); // Update every 5 minutes
     };
 
     updateStatus();
 }
 
-// Calculate duration between start and end dates (no current date)
+// Calculate duration from current date to end date
 function calculateDuration(dateInput) {
     const row = dateInput.closest('tr');
     const startDateInput = row.querySelector('.start-date-input');
     const endDateInput = row.querySelector('.end-date-input');
     const durationDisplay = row.querySelector('.duration-display');
     
-    if (!startDateInput.value || !endDateInput.value) {
+    if (!endDateInput.value) {
         durationDisplay.textContent = '-';
         durationDisplay.className = 'duration-display';
         return;
     }
     
-    const startDate = new Date(startDateInput.value);
     const endDate = new Date(endDateInput.value);
+    const currentDate = new Date();
     
-    // Calculate duration between start and end dates
-    const timeDiff = endDate - startDate;
+    // Calculate duration from current date to end date
+    const timeDiff = endDate - currentDate;
     const daysDiff = Math.round(timeDiff / (1000 * 60 * 60 * 24));
     
-    // Handle invalid date ranges
+    // Handle expired dates
     if (daysDiff < 0) {
-        durationDisplay.textContent = 'Invalid';
-        durationDisplay.className = 'duration-display duration-left';
+        durationDisplay.textContent = 'Expired';
+        durationDisplay.style.color = '#ff4757';
+        durationDisplay.style.padding = '4px 8px';
+        durationDisplay.style.borderRadius = '4px';
+        durationDisplay.style.fontWeight = 'bold';
         return;
     }
     
-    // Set duration value
-    durationDisplay.textContent = daysDiff;
-    durationDisplay.className = 'duration-display duration-safe';
-    
-    // Color coding based on duration length
-    if (daysDiff <= 60) {
-        durationDisplay.classList.add('duration-left');
+    // Handle expires today
+    if (daysDiff === 0) {
+        durationDisplay.textContent = 'Expires today';
+        durationDisplay.style.color = '#ff4757';
+        durationDisplay.style.padding = '4px 8px';
+        durationDisplay.style.borderRadius = '4px';
+        durationDisplay.style.fontWeight = 'bold';
+        return;
     }
     
+    // Set duration value for future dates
+    durationDisplay.textContent = daysDiff + ' days left';
+    
+    // Color coding based on days left
+    if (daysDiff < 30) {
+        // Red for less than 30 days
+        durationDisplay.style.color = '#ff4757';
+    } else if (daysDiff >= 30 && daysDiff <= 90) {
+        // Yellow for 30-90 days
+        durationDisplay.style.color = '#ffa502';
+    } else {
+        // Green for more than 90 days
+        durationDisplay.style.color = '#2ed573';
+    }
+    
+    durationDisplay.style.padding = '4px 8px';
+    durationDisplay.style.borderRadius = '4px';
+    durationDisplay.style.fontWeight = 'bold';
+    durationDisplay.className = 'duration-display duration-safe';
+    
     // Add tooltip with date information
-    const startDateStr = startDate.toLocaleDateString();
+    const currentDateStr = currentDate.toLocaleDateString();
     const endDateStr = endDate.toLocaleDateString();
-    durationDisplay.title = `Start: ${startDateStr}\nEnd: ${endDateStr}\nDuration: ${daysDiff} days`;
+    durationDisplay.title = `Today: ${currentDateStr}\nEnd: ${endDateStr}\nDays left: ${daysDiff}`;
 }
 
 // Handle file import
@@ -362,8 +417,36 @@ function processImportedData(jsonData) {
             continue;
         }
         
-        // Calculate duration between start and end dates
-        const duration = Math.round((endDate - startDate) / 86400000);
+        // Calculate duration from current date to end date
+        const currentDate = new Date();
+        const duration = Math.round((endDate - currentDate) / 86400000);
+        
+        // Determine display text and color based on duration
+        let durationDisplayText = '';
+        let durationStyle = '';
+        let durationColor = '';
+        
+        if (duration < 0) {
+            durationDisplayText = 'Expired';
+            durationColor = '#ff4757';
+        } else if (duration === 0) {
+            durationDisplayText = 'Expires today';
+            durationColor = '#ff4757';
+        } else {
+            durationDisplayText = duration + ' days left';
+            if (duration < 30) {
+                // Red for less than 30 days
+                durationColor = '#ff4757';
+            } else if (duration >= 30 && duration <= 90) {
+                // Yellow for 30-90 days
+                durationColor = '#ffa502';
+            } else {
+                // Green for more than 90 days
+                durationColor = '#2ed573';
+            }
+        }
+        
+        durationStyle = `color: ${durationColor}; padding: 4px 8px; border-radius: 4px; font-weight: bold;`;
         
         // Get other values (including S.NO from Excel)
         const sno = row["S.NO"] || row["S.No"] || row["SNo"] || (i + 1); // Auto-fill if not present
@@ -430,7 +513,7 @@ function processImportedData(jsonData) {
                 <input type="date" class="end-date-input" value="${formatYYYYMMDD(endDate)}">
             </td>
             <td>
-                <input type="text" class="duration-input" placeholder="Duration" value="${duration}" readonly>
+                <input type="text" class="duration-input" placeholder="Duration" value="${durationDisplayText}" readonly style="${durationStyle}">
             </td>
             <td>
                 <input type="text" class="handle-by-input" placeholder="Enter Handle By" value="${handleBy}">

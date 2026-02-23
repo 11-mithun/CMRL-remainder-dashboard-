@@ -1,4 +1,4 @@
-# CMRL/IT Dashboard - Complete Documentation
+# CMRL Dashboard - Complete Documentation
 
 ## 📋 Table of Contents
 - [Project Overview](#project-overview)
@@ -18,7 +18,7 @@
 
 ## 🎯 Project Overview
 
-CMRL/IT Dashboard is a comprehensive web-based management system for tracking contractors, bills, and EPBG (Earnest Performance Bank Guarantee) documents. It features a modern dark/light theme interface with real-time data synchronization, Excel import/export capabilities, and role-based access control.
+CMRL Dashboard is a comprehensive web-based management system for tracking contractors, bills, and EPBG (Earnest Performance Bank Guarantee) documents. It features a modern dark/light theme interface with real-time data synchronization, Excel import/export capabilities, and role-based access control.
 
 **Key Technologies:**
 - **Frontend**: HTML5, CSS3, JavaScript (ES6+)
@@ -47,15 +47,7 @@ CMRL/IT Dashboard is a comprehensive web-based management system for tracking co
 - **Data Validation**: Input validation with error handling
 - **Export to Excel**: Formatted data export with proper column mapping
 
-### � Analytics Module
-- **Real-time KPIs**: Total Bills, Bill Frequency, Overdue Bills tracking
-- **Interactive Charts**: Bill Tracker Trends, Frequency Distribution, Duration Analysis
-- **AI Risk Prediction**: Dynamic risk assessment based on bill data
-- **Performance Forecasting**: Predictive analytics for future trends
-- **Data Synchronization**: Live updates from Bill Tracker module
-- **Manual Refresh**: Force data reload with loading indicators
-
-### �💰 Bill Tracker Module
+### 💰 Bill Tracker Module
 - **Bill Lifecycle Tracking**: From approval to payment
 - **Frequency Management**: Monthly/Quarterly/Annual bill tracking
 - **Amount Calculations**: Approved vs Paid amount tracking
@@ -117,23 +109,7 @@ CMRL/IT Dashboard is a comprehensive web-based management system for tracking co
 - Date range selectors
 - Payment status badges
 
-### 4. Analytics Page (`/analytics.html`)
-**Features:**
-- Real-time KPI dashboard
-- Interactive data visualization
-- AI-powered risk analysis
-- Performance forecasting
-- Live data synchronization from Bill Tracker
-- Manual refresh capabilities
-
-**UI Components:**
-- KPI cards with sparkline charts
-- Multiple chart types (line, doughnut, bar)
-- AI analytics section
-- Filter controls
-- Refresh button with loading stateus badges
-
-### 5. EPBG Page (`/epbg.html`)
+### 4. EPBG Page (`/epbg`)
 **Features:**
 - Bank guarantee management
 - Validity tracking
@@ -211,13 +187,13 @@ Frontend (Update UI)
 5. Session Timeout → Auto Logout
 ```
 
-### Bill Tracker Data Persistence
+### Data Synchronization
 ```
-1. User Input → Debounced Save (500ms)
-2. LocalStorage → billTrackerData Key
-3. Analytics Sync → analyticsData Key
-4. Cross-Page Sync → beforeunload Event
-5. Periodic Backup → 30-second Intervals
+1. User Input → Form Validation
+2. LocalStorage → Immediate Save
+3. API Call → Backend Sync
+4. Database → Persistent Storage
+5. Response → UI Update
 ```
 
 ### Excel Import/Export Flow
@@ -414,18 +390,15 @@ CREATE TABLE contractor_list (
 CREATE TABLE bill_tracker (
     id INT PRIMARY KEY AUTO_INCREMENT,
     sno VARCHAR(50),
-    efile_no VARCHAR(100),
+    efile VARCHAR(100),
     contractor VARCHAR(255),
-    start_date DATE,
-    end_date DATE,
-    duration VARCHAR(100),
-    handle_by VARCHAR(255),
-    frequency VARCHAR(50),
+    approved_date DATE,
     approved_amount DECIMAL(15,2),
-    paid_amount DECIMAL(15,2),
+    bill_frequency VARCHAR(50),
     bill_date DATE,
     bill_due_date DATE,
     bill_paid_date DATE,
+    paid_amount DECIMAL(15,2),
     file_name VARCHAR(255),
     file_base64 LONGTEXT,
     file_type VARCHAR(100),
@@ -484,23 +457,6 @@ GET  /api/bill-tracker      - Get all bill records
 POST /api/bill-tracker     - Save bill records
 ```
 
-### Data Persistence Issues
-```javascript
-// Verify Bill Tracker data structure
-const billData = JSON.parse(localStorage.getItem('billTrackerData') || '[]');
-console.log('Bill Tracker records:', billData.length);
-
-// Check analytics synchronization
-const analyticsData = JSON.parse(localStorage.getItem('analyticsData') || '{}');
-console.log('Analytics Bill Tracker data:', analyticsData.billTracker?.data?.length);
-```
-
-### Analytics Endpoints
-```
-GET  /api/analytics           - Get analytics data
-POST /api/analytics          - Save analytics data
-```
-
 ### EPBG Endpoints
 ```
 GET  /api/epbg             - Get all EPBG records
@@ -518,17 +474,10 @@ CMRL-remainder-dashboard-/
 │   ├── requirements.txt     # Python dependencies
 │   └── .env              # Environment variables
 ├── frontend/
-│   ├── index.html          # Main HTML file (Contractor List)
-│   ├── bill-tracker.html   # Bill Tracker page
-│   ├── epbg.html          # EPBG Management page
-│   ├── analytics.html      # Analytics Dashboard page
+│   ├── index.html          # Main HTML file
 │   ├── styles.css          # Complete styling
 │   ├── script.js          # Main JavaScript logic
-│   ├── bill-tracker.js    # Bill Tracker specific logic
-│   ├── analytics.js        # Analytics specific logic
-│   ├── auth.js            # Authentication logic
-│   ├── api.js            # API communication layer
-│   └── ai-analytics.js    # AI Analytics engine
+│   └── api.js            # API communication layer
 ├── database/
 │   └── schema.sql         # Database schema
 └── README.md             # This documentation
@@ -622,25 +571,15 @@ VALUES ('Admin', 'admin@cmrl.com', 'admin123', 'admin');
 
 ### Bill Tracking
 1. **Add Bills**: Click "Add Row" for new bill entries
-2. **Set Dates**: Enter start/end dates for duration calculation
-3. **Auto-fill S.NO**: Serial numbers auto-generated during Excel import
-4. **Track Payments**: Update paid amounts and dates
-5. **Monitor Status**: Visual indicators for payment status
-6. **Frequency Management**: Set billing frequency (Monthly/Quarterly/Annual)
-7. **Data Persistence**: Data automatically saved across page switches
+2. **Set Dates**: Enter approval, bill, due, and paid dates
+3. **Track Payments**: Update paid amounts and dates
+4. **Monitor Status**: Visual indicators for payment status
 
 ### EPBG Management
 1. **Add Guarantees**: Create new bank guarantee entries
 2. **Track Validity**: Monitor expiry dates
 3. **Upload Documents**: Attach relevant files
 4. **GEM Integration**: Link with GEM bid numbers
-
-### Analytics Dashboard
-1. **View KPIs**: Monitor Total Bills, Bill Frequency, Overdue Bills
-2. **Interactive Charts**: Explore Bill Tracker Trends and Frequency Distribution
-3. **AI Analytics**: Review risk predictions and performance forecasts
-4. **Manual Refresh**: Click refresh button for immediate data updates
-5. **Filter Data**: Use date range and type filters for focused analysis
 
 ### Theme Customization
 1. **Toggle Theme**: Click theme toggle button
@@ -682,8 +621,8 @@ SECRET_KEY=your_secret_key_here
 ### Common Issues
 1. **Date Picker Not Visible**: Check CSS for browser-specific selectors
 2. **File Upload Not Working**: Verify file size limits and permissions
-3. **Bill Tracker Data Loss**: Check localStorage keys and cross-tab sync
-4. **Analytics Not Updating**: Verify data synchronization and refresh functionality
+3. **Theme Not Persisting**: Check localStorage and backend sync
+4. **API Errors**: Verify database connection and endpoint URLs
 
 ### Debug Mode
 ```javascript
@@ -700,39 +639,7 @@ observer.observe(document.body, { childList: true, subtree: true });
 
 ---
 
-## � Recent Updates
-
-### Version 1.2.0 (February 2026)
-- **Enhanced Bill Tracker Module**
-  - Auto-fill S.NO during Excel import
-  - Consistent duration column styling with input fields
-  - Robust data persistence across page switches
-  - Real-time data synchronization with Analytics
-  - Debounced saving for improved performance
-  - Periodic backup every 30 seconds
-
-- **New Analytics Dashboard**
-  - Real-time KPI cards with Sparkline charts
-  - Bill Tracker Trends and Frequency Distribution charts
-  - AI-powered risk prediction using actual bill data
-  - Manual refresh functionality with loading indicators
-  - Live data synchronization from Bill Tracker
-
-- **Improved Data Synchronization**
-  - Cross-tab data synchronization
-  - Beforeunload event handling for page switches
-  - Consistent localStorage key structure
-  - Enhanced error handling and logging
-
-- **UI/UX Improvements**
-  - Updated dashboard name to "CMRL/IT Dashboard"
-  - Enhanced notification system
-  - Better loading states and user feedback
-  - Improved mobile responsiveness
-
----
-
-## �📄 License
+## 📄 License
 
 This project is proprietary to CMRL. All rights reserved.
 
@@ -748,4 +655,4 @@ For technical support and feature requests:
 ---
 
 *Last Updated: February 2026*
-*Version: 1.2.0*
+*Version: 1.0.0*
