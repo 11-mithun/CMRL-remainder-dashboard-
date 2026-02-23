@@ -58,6 +58,19 @@ function setupEventListeners() {
     
     // Initialize table filters dropdown
     initializeTableFilters();
+    
+    // Theme Toggle
+    const themeBtn = document.getElementById('themeToggleBtn');
+    if (themeBtn) {
+        themeBtn.addEventListener('click', function () {
+            const user = Auth.getUser();
+            if (user) {
+                const currentTheme = user.theme || 'light';
+                const newTheme = (currentTheme === 'light') ? 'dark' : 'light';
+                Auth.updateTheme(newTheme);
+            }
+        });
+    }
 }
 
 // Calculate duration between start and end date
@@ -732,17 +745,17 @@ async function saveData() {
         }
     });
 
-    // Save to API or localStorage
+    // Save to temporary storage
     try {
         await saveDataToStorage();
-        alert('Data saved successfully!');
+        alert('Data saved temporarily (session only)!');
     } catch (error) {
-        alert('Error saving data. Please try again.');
+        alert('Error saving data temporarily. Please try again.');
         console.error('Save error:', error);
     }
 }
 
-// Save data to API (with localStorage fallback)
+// Save data to sessionStorage (temporary storage)
 async function saveDataToStorage() {
     const tbody = document.getElementById('tableBody');
     const rows = tbody.querySelectorAll('tr');
@@ -774,18 +787,12 @@ async function saveDataToStorage() {
         });
     }
 
-    // Try to save to API, fallback to localStorage
+    // Save to sessionStorage only (temporary storage)
     try {
-        if (typeof billTrackerAPI !== 'undefined') {
-            await billTrackerAPI.save(dataToSave);
-            console.log('Data saved to API successfully');
-        } else {
-            localStorage.setItem(BILL_TRACKER_DATA_KEY, JSON.stringify(dataToSave));
-            console.log('Data saved to localStorage (API not available)');
-        }
+        sessionStorage.setItem(BILL_TRACKER_DATA_KEY, JSON.stringify(dataToSave));
+        console.log('Data saved to sessionStorage (temporary):', dataToSave.length, 'records');
     } catch (error) {
-        console.error('Failed to save to API, using localStorage:', error);
-        localStorage.setItem(BILL_TRACKER_DATA_KEY, JSON.stringify(dataToSave));
+        console.error('Failed to save to sessionStorage:', error);
     }
 }
 
@@ -1255,26 +1262,18 @@ function saveDataToStorage() {
 
 function loadDataFromStorage() {
     try {
-        // Simple direct load like contractorListData
-        const savedData = localStorage.getItem(BILL_TRACKER_DATA_KEY);
-        const savedHistory = localStorage.getItem(BILL_TRACKER_HISTORY_KEY);
-        const savedHistoryIndex = localStorage.getItem(BILL_TRACKER_HISTORY_INDEX_KEY);
+        // Load from sessionStorage only (temporary storage)
+        const savedData = sessionStorage.getItem(BILL_TRACKER_DATA_KEY);
         
         if (savedData) {
             const tableData = JSON.parse(savedData);
             restoreTableFromData(tableData);
-            console.log('Bill tracker data loaded from localStorage:', tableData.length, 'records');
-        }
-        
-        if (savedHistory) {
-            history = JSON.parse(savedHistory);
-        }
-        
-        if (savedHistoryIndex) {
-            historyIndex = parseInt(savedHistoryIndex);
+            console.log('Bill tracker data loaded from sessionStorage (temporary):', tableData.length, 'records');
+        } else {
+            console.log('No temporary data found in sessionStorage');
         }
     } catch (error) {
-        console.error('Error loading data from localStorage:', error);
+        console.error('Error loading data from sessionStorage:', error);
     }
 }
 
@@ -1367,15 +1366,8 @@ function setupLiveUpdates() {
         }
     });
     
-    // Save data on page unload (when switching pages)
-    window.addEventListener('beforeunload', function() {
-        saveDataToStorage();
-    });
-    
-    // Periodic save every 30 seconds
-    setInterval(() => {
-        saveDataToStorage();
-    }, 30000);
+    // Note: Removed page unload save to keep data temporary
+    // Note: Removed periodic save to keep data temporary
 }
 
 // Override saveData function to include localStorage

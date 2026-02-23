@@ -59,6 +59,19 @@ function setupAnalyticsEventListeners() {
             }, 1000);
         });
     }
+    
+    // Theme Toggle
+    const themeBtn = document.getElementById('themeToggleBtn');
+    if (themeBtn) {
+        themeBtn.addEventListener('click', function () {
+            const user = Auth.getUser();
+            if (user) {
+                const currentTheme = user.theme || 'light';
+                const newTheme = (currentTheme === 'light') ? 'dark' : 'light';
+                Auth.updateTheme(newTheme);
+            }
+        });
+    }
 }
 
 // AI Analytics Functions
