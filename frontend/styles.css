@@ -2,6 +2,44 @@
    Glassmorphism Dashboard Theme
    ========================================= */
 
+.pending-status {
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 32px;
+    width: 100%;
+    padding: 4px 8px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    font-size: 11px;
+    font-weight: 500;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin: 0;
+    box-sizing: border-box;
+    color: #ffffff !important; /* Ensure text color is white */
+}
+
+.months-status {
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 32px;
+    width: 100%;
+    padding: 4px 8px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    font-size: 11px;
+    font-weight: 500;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin: 0;
+    box-sizing: border-box;
+    color: #ffffff !important; /* Ensure text color is white */
+}
+
 :root {
     --glass-bg: rgba(255, 255, 255, 0.05);
     --glass-border: 1px solid rgba(255, 255, 255, 0.1);
@@ -1576,6 +1614,9 @@ body::after {
     padding: 15px 25px;
     background: rgba(255, 255, 255, 0.02);
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .filter-dropdown-container {
@@ -1829,14 +1870,102 @@ text-align: center;
 .data-table th:nth-child(10),
 .data-table td:nth-child(10) {
     width: 180px;
+    padding: 4px !important;
+    vertical-align: middle;
 }
 
 .data-table th:nth-child(11),
 .data-table td:nth-child(11) {
-    width: 70px;
-    text-align: center;
-    padding: 4px 2px !important;
-    vertical-align: middle;
+    width: 216px; /* 180px × 1.2 = 216px (20% increase) */
+}
+
+/* Specific styling for status columns to ensure proper alignment */
+.data-table td:nth-child(9) .months-status,
+.data-table td:nth-child(10) .pending-status {
+    margin: 0 auto;
+    display: block;
+    width: calc(100% - 8px);
+}
+
+/* Force status colors to override any yellow shade */
+.pending-status[style*="color: #2ed573"],
+.pending-status[style*="Paid"] {
+    color: #2ed573 !important;
+    background: rgba(46, 213, 115, 0.1) !important;
+}
+
+.pending-status[style*="color: #ff4757"],
+.pending-status[style*="Not Paid"] {
+    color: #ff4757 !important;
+    background: rgba(255, 71, 87, 0.1) !important;
+}
+
+.pending-status[style*="color: #ffa502"],
+.pending-status[style*="Pending"] {
+    color: #ffa502 !important;
+    background: rgba(255, 165, 2, 0.1) !important;
+}
+
+/* Additional override for any yellow/pale colors */
+.pending-status {
+    color: #ffffff !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Force override for first row specifically */
+.data-table tr:first-child .pending-status,
+.data-table tr:nth-child(1) .pending-status {
+    color: #ffffff !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Remove any yellow background from table cells */
+.data-table td:nth-child(10) {
+    background: transparent !important;
+}
+
+.data-table tr:nth-child(1) td:nth-child(10) {
+    background: transparent !important;
+}
+
+/* Year Filter Container */
+.year-filter-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.filter-label {
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.year-select {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    color: #ffffff;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    min-width: 100px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.year-select:focus {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(110, 142, 251, 0.5);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(110, 142, 251, 0.1);
+}
+
+.year-select option {
+    background: #1a1a2e;
+    color: #ffffff;
 }
 
 /* BULK OPERATIONS */

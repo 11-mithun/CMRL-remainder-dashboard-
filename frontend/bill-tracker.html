@@ -194,8 +194,8 @@
                                         <label for="filter-months">MONTHS</label>
                                     </div>
                                     <div class="filter-item">
-                                        <input type="checkbox" class="filter-checkbox" id="filter-pending" data-column="pending">
-                                        <label for="filter-pending">PENDING</label>
+                                        <input type="checkbox" class="filter-checkbox" id="filter-remarks" data-column="remarks">
+                                        <label for="filter-remarks">REMARKS</label>
                                     </div>
                                 </div>
                                 
@@ -208,6 +208,20 @@
                                     </button>
                                 </div>
                             </div>
+                        </div>
+                        
+                        <!-- Year Dropdown -->
+                        <div class="year-filter-container">
+                            <label for="filterYearSelect" class="filter-label">Year:</label>
+                            <select class="year-select" id="filterYearSelect">
+                                <option value="">Select Year</option>
+                                <option value="2025">2025</option>
+                                <option value="2026">2026</option>
+                                <option value="2027">2027</option>
+                                <option value="2028">2028</option>
+                                <option value="2029">2029</option>
+                                <option value="2030">2030</option>
+                            </select>
                         </div>
                     </div>
 
@@ -223,8 +237,25 @@
                                     <th>DURATION</th>
                                     <th>HANDLE BY</th>
                                     <th>FREQUENCY</th>
-                                    <th>MONTHS</th>
-                                    <th>PENDING</th>
+                                    <th>
+                                        <select class="global-months-select" id="globalMonthsSelect">
+                                            <option value="">Select Month</option>
+                                            <option value="January">January</option>
+                                            <option value="February">February</option>
+                                            <option value="March">March</option>
+                                            <option value="April">April</option>
+                                            <option value="May">May</option>
+                                            <option value="June">June</option>
+                                            <option value="July">July</option>
+                                            <option value="August">August</option>
+                                            <option value="September">September</option>
+                                            <option value="October">October</option>
+                                            <option value="November">November</option>
+                                            <option value="December">December</option>
+                                        </select>
+                                    </th>
+                                    <th>PENDING STATUS</th>
+                                    <th>REMARKS</th>
                                 </tr>
                             </thead>
                             <tbody id="tableBody">
