@@ -55,9 +55,14 @@ CMRL Dashboard is a comprehensive web-based management system for tracking contr
 - **Payment Status**: Visual indicators for payment status
 - **File Attachments**: Bill document management
 - **Duration Calculation**: Real-time calculation from current date to end date
-- **Color-Coded Duration**: Visual urgency indicators (Red: <30 days, Yellow: 30-90 days, Green: >90 days)
+- **Color-Coded Duration**: Visual urgency indicators (Red: ≤60 days, Yellow: 60-90 days, Green: >90 days)
 - **Multi-Level Filtering**: Column-based filtering by months, payment status, and other criteria
 - **Real-time Updates**: Automatic duration updates every 5 minutes
+- **Bulk Operations**: Multi-row selection with bulk edit/delete functionality
+- **Notification System**: Automatic expiry alerts with detailed modal display
+- **Advanced Filtering**: Column hiding/showing with proper alignment maintenance
+- **Checkbox Selection**: Individual row selection with bulk action controls
+- **Audit Trail**: Complete logging of all bulk operations
 
 ### 🏦 EPBG Module
 - **Bank Guarantee Tracking**: PO numbers and guarantee details
@@ -110,6 +115,11 @@ CMRL Dashboard is a comprehensive web-based management system for tracking contr
 - Color-coded duration display (Red/Yellow/Green)
 - Multi-level column-based filtering
 - Real-time duration updates
+- Bulk operations with multi-row selection
+- Notification system for expiry alerts
+- Advanced column filtering with hide/show functionality
+- Checkbox-based row selection
+- Audit trail for all operations
 
 **UI Components:**
 - Bill status indicators
@@ -119,6 +129,11 @@ CMRL Dashboard is a comprehensive web-based management system for tracking contr
 - Duration display with color coding
 - Column-based filter dropdowns
 - Real-time update indicators
+- Bulk operations toolbar (Edit Selected/Delete Selected)
+- Selection counter showing "X selected"
+- Notification bell with badge count
+- Detailed notification modal with contract information
+- Checkbox controls in S.NO column for row selection
 
 ### 4. EPBG Page (`/epbg`)
 **Features:**
@@ -485,10 +500,18 @@ CMRL-remainder-dashboard-/
 │   ├── requirements.txt     # Python dependencies
 │   └── .env              # Environment variables
 ├── frontend/
-│   ├── index.html          # Main HTML file
+│   ├── index.html          # Main HTML file (Contractor List)
+│   ├── bill-tracker.html   # Bill Tracker page
+│   ├── epbg.html           # EPBG management page
+│   ├── analytics.html      # Analytics dashboard
 │   ├── styles.css          # Complete styling
-│   ├── script.js          # Main JavaScript logic
-│   └── api.js            # API communication layer
+│   ├── script.js          # Main JavaScript logic (Contractor List)
+│   ├── bill-tracker.js    # Bill Tracker JavaScript
+│   ├── epbg.js            # EPBG JavaScript
+│   ├── analytics.js       # Analytics JavaScript
+│   ├── auth.js            # Authentication module
+│   ├── api.js            # API communication layer
+│   └── ai-analytics.js   # AI-powered analytics
 ├── database/
 │   └── schema.sql         # Database schema
 └── README.md             # This documentation
@@ -587,11 +610,23 @@ VALUES ('Admin', 'admin@cmrl.com', 'admin123', 'admin');
 4. **Monitor Status**: Visual indicators for payment status
 5. **Duration Tracking**: Automatic calculation from current date to end date
 6. **Color-Coded Urgency**: 
-   - 🔴 Red text: < 30 days (urgent)
-   - 🟡 Yellow text: 30-90 days (warning)
-   - 🟢 Green text: > 90 days (safe)
+   - 🔴 Red text: ≤60 days (urgent)
+   - 🟡 Yellow text: 60-90 days (warning)
+   - 🟢 Green text: >90 days (safe)
 7. **Filter Data**: Use column-based filters for months, payment status, and more
 8. **Real-time Updates**: Duration automatically updates every 5 minutes
+9. **Bulk Operations**: 
+   - Select rows using checkboxes in S.NO column
+   - Use "Edit Selected" to modify multiple rows
+   - Use "Delete Selected" to remove multiple rows
+10. **Notification System**: 
+    - Automatic expiry alerts for bills ≤60 days
+    - Click notification bell to view detailed warnings
+    - Badge shows count of urgent bills
+11. **Advanced Filtering**: 
+    - Hide/show specific columns using filter dropdown
+    - Maintains proper table alignment
+    - Always keeps S.NO and ACTION columns visible
 
 ### EPBG Management
 1. **Add Guarantees**: Create new bank guarantee entries
@@ -620,9 +655,9 @@ The Bill Tracker includes an intelligent duration calculation system that provid
 #### **Color-Coded Urgency System**
 | Days Remaining | Text Color | Status | Action Required |
 |-----------------|------------|--------|----------------|
-| **< 30 days** | 🔴 #ff4757 | **Urgent** | Immediate attention needed |
-| **30-90 days** | 🟡 #ffa502 | **Warning** | Plan ahead for payment |
-| **> 90 days** | 🟢 #2ed573 | **Safe** | Plenty of time remaining |
+| **≤60 days** | 🔴 #ff4757 | **Urgent** | Immediate attention needed |
+| **60-90 days** | 🟡 #ffa502 | **Warning** | Plan ahead for payment |
+| **>90 days** | 🟢 #2ed573 | **Safe** | Plenty of time remaining |
 | **Expired** | 🔴 #ff4757 | **Expired** | Follow-up required |
 | **Expires Today** | 🔴 #ff4757 | **Critical** | Action needed today |
 
@@ -631,6 +666,57 @@ The Bill Tracker includes an intelligent duration calculation system that provid
 - **Padding**: 4px 8px for better readability
 - **Border Radius**: 4px for modern appearance
 - **No Background**: Clean, text-only design for better integration
+
+### Notification System
+Advanced notification system for bill expiry management:
+
+#### **Automatic Alerts**
+- **Expiry Detection**: Automatically identifies bills ≤60 days from expiry
+- **Badge Counter**: Shows count of urgent bills on notification bell
+- **Auto-Popup**: Alerts appear automatically after Excel import
+- **Real-time Updates**: Badge updates when durations change
+
+#### **Notification Modal**
+- **Detailed Information**: Shows S.NO, E-FILE, CONTRACTOR, START DATE, END DATE, DURATION
+- **Color-Coded Warnings**: Red highlighting for urgent items
+- **Click to View**: Click notification badge to open detailed modal
+- **Empty State**: Friendly message when no warnings exist
+
+### Bulk Operations System
+Multi-row selection and bulk action capabilities:
+
+#### **Selection Mechanism**
+- **Checkbox Controls**: Individual checkboxes in S.NO column
+- **Selection Counter**: Shows "X selected" in real-time
+- **Visual Feedback**: Selected rows are clearly indicated
+- **Persistent Selection**: Maintains selection during operations
+
+#### **Bulk Actions**
+- **Bulk Edit**: Enable editing mode for multiple selected rows
+- **Bulk Delete**: Remove multiple rows with confirmation
+- **Audit Trail**: Complete logging of all bulk operations
+- **Auto S.NO Reassignment**: Renumbering after deletion
+
+#### **Audit System**
+- **Operation Logging**: Records all bulk edit/delete actions
+- **Timestamp Tracking**: Exact time of each operation
+- **User Attribution**: Tracks which user performed actions
+- **Session Storage**: Temporary audit log for current session
+
+### Advanced Filtering System
+Column-based filtering with hide/show functionality:
+
+#### **Filter Logic**
+- **Column Hiding**: Select columns to hide (reverse logic)
+- **Proper Alignment**: Maintains table structure during filtering
+- **Always Visible**: S.NO and ACTION columns always remain visible
+- **Apply/Clear**: Easy filter management with buttons
+
+#### **Filter Features**
+- **Multi-Column Selection**: Can hide multiple columns simultaneously
+- **Instant Application**: Filters apply immediately on "Apply Filters"
+- **Clear All**: Reset to show all columns
+- **Status Indicators**: Visual feedback when filters are active
 
 ### Multi-Level Filtering System
 Advanced filtering capabilities using existing column values:
@@ -716,5 +802,5 @@ For technical support and feature requests:
 
 ---
 
-*Last Updated: February 23, 2026*
-*Version: 1.1.0*
+*Last Updated: February 25, 2026*
+*Version: 1.2.0*
