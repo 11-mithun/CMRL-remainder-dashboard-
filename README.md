@@ -54,6 +54,10 @@ CMRL Dashboard is a comprehensive web-based management system for tracking contr
 - **Due Date Management**: Automatic due date calculations
 - **Payment Status**: Visual indicators for payment status
 - **File Attachments**: Bill document management
+- **Duration Calculation**: Real-time calculation from current date to end date
+- **Color-Coded Duration**: Visual urgency indicators (Red: <30 days, Yellow: 30-90 days, Green: >90 days)
+- **Multi-Level Filtering**: Column-based filtering by months, payment status, and other criteria
+- **Real-time Updates**: Automatic duration updates every 5 minutes
 
 ### 🏦 EPBG Module
 - **Bank Guarantee Tracking**: PO numbers and guarantee details
@@ -102,12 +106,19 @@ CMRL Dashboard is a comprehensive web-based management system for tracking contr
 - Payment status tracking
 - Due date calculations
 - Frequency-based billing
+- Duration calculation from current date to end date
+- Color-coded duration display (Red/Yellow/Green)
+- Multi-level column-based filtering
+- Real-time duration updates
 
 **UI Components:**
 - Bill status indicators
 - Amount comparison views
 - Date range selectors
 - Payment status badges
+- Duration display with color coding
+- Column-based filter dropdowns
+- Real-time update indicators
 
 ### 4. EPBG Page (`/epbg`)
 **Features:**
@@ -574,6 +585,13 @@ VALUES ('Admin', 'admin@cmrl.com', 'admin123', 'admin');
 2. **Set Dates**: Enter approval, bill, due, and paid dates
 3. **Track Payments**: Update paid amounts and dates
 4. **Monitor Status**: Visual indicators for payment status
+5. **Duration Tracking**: Automatic calculation from current date to end date
+6. **Color-Coded Urgency**: 
+   - 🔴 Red text: < 30 days (urgent)
+   - 🟡 Yellow text: 30-90 days (warning)
+   - 🟢 Green text: > 90 days (safe)
+7. **Filter Data**: Use column-based filters for months, payment status, and more
+8. **Real-time Updates**: Duration automatically updates every 5 minutes
 
 ### EPBG Management
 1. **Add Guarantees**: Create new bank guarantee entries
@@ -585,6 +603,50 @@ VALUES ('Admin', 'admin@cmrl.com', 'admin123', 'admin');
 1. **Toggle Theme**: Click theme toggle button
 2. **Persistent Preference**: Theme choice is saved
 3. **System Sync**: Preference synced with backend
+
+---
+
+## 🎯 Bill Tracker Features
+
+### Duration Calculation System
+The Bill Tracker includes an intelligent duration calculation system that provides real-time tracking of bill deadlines:
+
+#### **Calculation Logic**
+- **Current Date to End Date**: Duration is calculated from today's date to the bill's end date
+- **Real-time Updates**: Automatically updates every 5 minutes
+- **Manual Updates**: Instant updates when dates are changed
+- **Import Integration**: Applies duration calculation during Excel import
+
+#### **Color-Coded Urgency System**
+| Days Remaining | Text Color | Status | Action Required |
+|-----------------|------------|--------|----------------|
+| **< 30 days** | 🔴 #ff4757 | **Urgent** | Immediate attention needed |
+| **30-90 days** | 🟡 #ffa502 | **Warning** | Plan ahead for payment |
+| **> 90 days** | 🟢 #2ed573 | **Safe** | Plenty of time remaining |
+| **Expired** | 🔴 #ff4757 | **Expired** | Follow-up required |
+| **Expires Today** | 🔴 #ff4757 | **Critical** | Action needed today |
+
+#### **Visual Features**
+- **Bold Text**: Enhanced visibility with font-weight: bold
+- **Padding**: 4px 8px for better readability
+- **Border Radius**: 4px for modern appearance
+- **No Background**: Clean, text-only design for better integration
+
+### Multi-Level Filtering System
+Advanced filtering capabilities using existing column values:
+
+#### **Filter Categories**
+- **Months**: Filter bills by specific months based on frequency and dates
+- **Payment Status**: Filter by Paid/Unpaid/All status
+- **Frequency**: Filter by Monthly/Quarterly/Annual billing cycles
+- **Contractor**: Filter by specific contractor names
+- **Other Columns**: All existing columns support filtering
+
+#### **Filter Features**
+- **Column-Based**: Uses existing column data, no separate filter controls
+- **Multi-Select**: Can apply multiple filters simultaneously
+- **Real-time**: Filters apply instantly as you select options
+- **Persistent**: Filter selections are maintained during session
 
 ---
 
@@ -654,5 +716,5 @@ For technical support and feature requests:
 
 ---
 
-*Last Updated: February 2026*
-*Version: 1.0.0*
+*Last Updated: February 23, 2026*
+*Version: 1.1.0*

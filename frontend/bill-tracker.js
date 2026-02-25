@@ -35,12 +35,32 @@ function setupEventListeners() {
     // File input change event
     document.getElementById('excelFileInput').addEventListener('change', handleFileImport);
     
+    // Notification bell button - open notification modal
+    const notificationBellBtn = document.getElementById('notificationBellBtn');
+    if (notificationBellBtn) {
+        notificationBellBtn.addEventListener('click', function () {
+            openNotificationModal();
+        });
+    }
+    
     // Add event delegation for date inputs to calculate duration
     document.addEventListener('change', function(e) {
         if (e.target.classList.contains('start-date-input') || e.target.classList.contains('end-date-input')) {
             calculateDuration(e.target);
         }
     });
+    
+    // Initialize bulk operations
+    document.addEventListener('change', function(e) {
+        if (e.target.classList.contains('frequency-select')) {
+            // Mark as manually edited to prevent auto-sync
+            e.target.setAttribute('data-manual-edit', 'true');
+        }
+    });
+    
+    // Initialize global months dropdown
+    initializeGlobalMonthsDropdown();
+    initializeFilterYearDropdown();
     
     // Initialize duration calculations after page load
     setTimeout(() => {
@@ -168,16 +188,19 @@ function updateAllDurations() {
             } else {
                 durationDisplay.textContent = diffDays + ' days left';
                 
-                // Color coding based on days left
-                if (diffDays < 30) {
-                    // Red for less than 30 days
+                // Color coding based on days left - Updated logic
+                if (diffDays <= 60) {
+                    // Red for 60 days or less
                     durationDisplay.style.color = '#ff4757';
-                } else if (diffDays >= 30 && diffDays <= 90) {
-                    // Yellow for 30-90 days
+                    durationDisplay.classList.add('warning');
+                } else if (diffDays > 60 && diffDays <= 90) {
+                    // Yellow for 60-90 days
                     durationDisplay.style.color = '#ffa502';
+                    durationDisplay.classList.remove('warning');
                 } else {
                     // Green for more than 90 days
                     durationDisplay.style.color = '#2ed573';
+                    durationDisplay.classList.remove('warning');
                 }
                 
                 durationDisplay.style.padding = '4px 8px';
@@ -186,9 +209,10 @@ function updateAllDurations() {
                 durationDisplay.classList.remove('duration-left');
                 durationDisplay.classList.add('duration-safe');
             }
-        } else {
+        } else if (durationDisplay) {
+            // Handle case where durationDisplay exists but no end date
             durationDisplay.textContent = '-';
-            durationDisplay.classList.remove('duration-safe', 'duration-left');
+            durationDisplay.classList.remove('duration-safe', 'duration-left', 'warning');
         }
     });
 
@@ -460,6 +484,7 @@ function processImportedData(jsonData) {
         const contractor = row["Company"] || row["Contractor"] || '';
         const handleBy = row["Handle By"] || '';
         let frequency = row["Frequency"] || row["frequency"] || '';
+        const months = row["Months"] || row["months"] || '';
         
         // Clean up frequency value
         if (frequency) {
@@ -483,7 +508,7 @@ function processImportedData(jsonData) {
         
         frequency = frequencyMap[frequency] || frequency;
         
-        console.log('Final values:', { sno, efileNo, contractor, startDate, endDate, duration, handleBy, frequency });
+        console.log('Final values:', { sno, efileNo, contractor, startDate, endDate, duration, handleBy, frequency, months });
         
         // Format date as YYYY-MM-DD for HTML date inputs
         const formatYYYYMMDD = (date) => {
@@ -528,24 +553,13 @@ function processImportedData(jsonData) {
                 </select>
             </td>
             <td>
-                <select class="months-select">
-                    <option value="">Select Month</option>
-                    <option value="January" ${(row['Months'] || row['months']) === 'January' ? 'selected' : ''}>January</option>
-                    <option value="February" ${(row['Months'] || row['months']) === 'February' ? 'selected' : ''}>February</option>
-                    <option value="March" ${(row['Months'] || row['months']) === 'March' ? 'selected' : ''}>March</option>
-                    <option value="April" ${(row['Months'] || row['months']) === 'April' ? 'selected' : ''}>April</option>
-                    <option value="May" ${(row['Months'] || row['months']) === 'May' ? 'selected' : ''}>May</option>
-                    <option value="June" ${(row['Months'] || row['months']) === 'June' ? 'selected' : ''}>June</option>
-                    <option value="July" ${(row['Months'] || row['months']) === 'July' ? 'selected' : ''}>July</option>
-                    <option value="August" ${(row['Months'] || row['months']) === 'August' ? 'selected' : ''}>August</option>
-                    <option value="September" ${(row['Months'] || row['months']) === 'September' ? 'selected' : ''}>September</option>
-                    <option value="October" ${(row['Months'] || row['months']) === 'October' ? 'selected' : ''}>October</option>
-                    <option value="November" ${(row['Months'] || row['months']) === 'November' ? 'selected' : ''}>November</option>
-                    <option value="December" ${(row['Months'] || row['months']) === 'December' ? 'selected' : ''}>December</option>
-                </select>
+                <div class="months-status" style="font-size: 11px; color: #ffa502; margin-top: 2px;">Pending</div>
             </td>
             <td>
-                <input type="text" class="pending-input" placeholder="Enter Pending" value="${row['Pending'] || row['pending'] || ''}">
+                <div class="pending-status" style="font-size: 11px; color: #ffa502; margin-top: 2px;">-</div>
+            </td>
+            <td>
+                <input type="text" class="remarks-input" placeholder="Enter Remarks" value="${row['Remarks'] || row['remarks'] || ''}">
             </td>
         `;
         
@@ -568,6 +582,192 @@ function processImportedData(jsonData) {
     
     const message = `Successfully imported ${validRows} rows${skippedRows > 0 ? ` (skipped ${skippedRows} invalid rows)` : ''}!`;
     alert(message);
+    
+    // Auto-show expiry alerts after import
+    setTimeout(() => {
+        checkAllDurations();
+        updateNotificationCount();
+        const warningCount = getWarningCount();
+        if (warningCount > 0) {
+            openNotificationModal();
+        }
+    }, 500);
+}
+
+// Open notification modal and show all duration warnings
+function openNotificationModal() {
+    // First, check all rows for duration warnings
+    checkAllDurations();
+    // Update badge to reflect current warnings
+    updateNotificationCount();
+
+    // Get or create notification modal
+    let modal = document.getElementById('notificationModal');
+    if (!modal) {
+        // Create modal if it doesn't exist
+        modal = document.createElement('div');
+        modal.className = 'notification-modal';
+        modal.id = 'notificationModal';
+        modal.innerHTML = `
+            <div class="notification-content">
+                <div class="notification-header">
+                    <h3><i class="fas fa-exclamation-triangle"></i> Duration Warning</h3>
+                    <button class="notification-close" id="closeNotification">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="notification-body" id="notificationBody"></div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+
+        // Add close button event
+        const closeBtn = modal.querySelector('#closeNotification');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', closeNotification);
+        }
+
+        // Close on overlay click
+        modal.addEventListener('click', function (e) {
+            if (e.target === modal) {
+                closeNotification();
+            }
+        });
+    }
+
+    const notificationBody = document.getElementById('notificationBody');
+    if (!notificationBody) return;
+
+    // Clear existing content
+    notificationBody.innerHTML = '';
+
+    // Get all rows with warnings
+    const tbody = document.getElementById('tableBody');
+    if (!tbody) return;
+
+    const rows = tbody.querySelectorAll('tr');
+    let warningFound = false;
+
+    rows.forEach((row, index) => {
+        const snoCell = row.querySelector('.sno-input');
+        const efileCell = row.querySelector('.efile-no-input');
+        const contractorCell = row.querySelector('.contractor-input');
+        const startDateInput = row.querySelector('.start-date-input');
+        const endDateInput = row.querySelector('.end-date-input');
+        const durationDisplay = row.querySelector('.duration-input');
+
+        // Skip rows without required elements
+        if (!durationDisplay) {
+            console.log(`Row ${index}: No duration display found, skipping`);
+            return;
+        }
+
+        // Use same logic as getWarningCount to identify warnings
+        let isWarning = false;
+        let daysLeft = 0;
+        let daysText = durationDisplay.textContent || '';
+        
+        if (startDateInput && endDateInput && startDateInput.value && endDateInput.value) {
+            const startDate = new Date(startDateInput.value);
+            const endDate = new Date(endDateInput.value);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            if (endDate >= startDate) {
+                const diffDays = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+                if (diffDays <= 60 && diffDays >= 0) {
+                    isWarning = true;
+                    daysLeft = diffDays;
+                }
+            }
+        } else if (daysText.includes('days')) {
+            const match = daysText.match(/(\d+)\s*days/);
+            if (match) {
+                const days = parseInt(match[1], 10);
+                if (days <= 60) {
+                    isWarning = true;
+                    daysLeft = days;
+                }
+            }
+        } else if (daysText === 'Expired' || daysText === 'Expires today') {
+            isWarning = true;
+            daysLeft = 0;
+        }
+
+        // Debug logging
+        console.log(`Row ${index}: isWarning = ${isWarning}, duration = "${daysText}"`);
+
+        if (isWarning) {
+            warningFound = true;
+            const sno = snoCell ? snoCell.value : (index + 1);
+            const efile = efileCell ? efileCell.value : '';
+            const contractor = contractorCell ? contractorCell.value : 'Unknown';
+            const startDate = startDateInput ? startDateInput.value : '';
+            const endDate = endDateInput ? endDateInput.value : '';
+
+            const notificationItem = document.createElement('div');
+            notificationItem.className = 'notification-item';
+            notificationItem.innerHTML = `
+                <div class="notification-item-title">
+                    <i class="fas fa-exclamation-circle"></i>
+                    Warning: Only ${daysLeft} days remaining!
+                </div>
+                <div class="notification-item-details">
+                    <div>
+                        <strong>S.NO</strong>
+                        <span>${sno || 'N/A'}</span>
+                    </div>
+                    <div>
+                        <strong>E-FILE</strong>
+                        <span>${efile || 'N/A'}</span>
+                    </div>
+                    <div>
+                        <strong>CONTRACTOR</strong>
+                        <span>${contractor || 'N/A'}</span>
+                    </div>
+                    <div>
+                        <strong>START DATE</strong>
+                        <span>${startDate || 'N/A'}</span>
+                    </div>
+                    <div>
+                        <strong>END DATE</strong>
+                        <span>${endDate || 'N/A'}</span>
+                    </div>
+                    <div>
+                        <strong>DURATION</strong>
+                        <span style="color: #ff4444; font-weight: bold;">${daysLeft} days left</span>
+                    </div>
+                </div>
+            `;
+            notificationBody.appendChild(notificationItem);
+        }
+    });
+
+    // If no warnings found, show empty message
+    if (!warningFound) {
+        notificationBody.innerHTML = `
+            <div class="notification-empty">
+                <i class="fas fa-check-circle" style="font-size: 48px; color: #00d4ff; margin-bottom: 15px; display: block;"></i>
+                <p>No duration warnings found!</p>
+                <p style="font-size: 14px; margin-top: 10px; color: rgba(255, 255, 255, 0.5);">All contracts have more than 60 days remaining.</p>
+            </div>
+        `;
+    }
+
+    // Show modal
+    if (modal) {
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+// Close notification modal
+function closeNotification() {
+    const modal = document.getElementById('notificationModal');
+    if (modal) {
+        modal.classList.remove('active');
+        document.body.style.overflow = 'auto';
+    }
 }
 
 // Assign sequential S.NO numbers to all rows in the table
@@ -750,24 +950,13 @@ function addRow() {
             </select>
         </td>
         <td>
-            <select class="months-select">
-                <option value="">Select Month</option>
-                <option value="January">January</option>
-                <option value="February">February</option>
-                <option value="March">March</option>
-                <option value="April">April</option>
-                <option value="May">May</option>
-                <option value="June">June</option>
-                <option value="July">July</option>
-                <option value="August">August</option>
-                <option value="September">September</option>
-                <option value="October">October</option>
-                <option value="November">November</option>
-                <option value="December">December</option>
-            </select>
+            <div class="months-status" style="font-size: 11px; color: #ffa502; margin-top: 2px;">Pending</div>
         </td>
         <td>
-            <input type="text" class="pending-input" placeholder="Enter Pending">
+            <div class="pending-status" style="font-size: 11px; color: #ffa502; margin-top: 2px;">-</div>
+        </td>
+        <td>
+            <input type="text" class="remarks-input" placeholder="Enter Remarks">
         </td>
     `;
     
@@ -806,13 +995,14 @@ async function saveData() {
         const duration = row.querySelector('.duration-input')?.value || '';
         const handleBy = row.querySelector('.handle-by-input')?.value || '';
         const frequency = row.querySelector('.frequency-select')?.value || '';
-        const months = row.querySelector('.months-select')?.value || '';
-        const pending = row.querySelector('.pending-input')?.value || '';
+        const months = row.querySelector('.months-status')?.textContent || '';
+        const pendingStatus = row.querySelector('.pending-status')?.textContent || '';
+        const remarks = row.querySelector('.remarks-input')?.value || '';
         
         // DEBUG: Log data collection
-        console.log(`Save Row ${index}: EFILE="${efileNo}", CONTRACTOR="${contractor}", FREQUENCY="${frequency}", MONTHS="${months}"`);
+        console.log(`Save Row ${index}: EFILE="${efileNo}", CONTRACTOR="${contractor}", FREQUENCY="${frequency}", MONTHS="${months}", PENDING STATUS="${pendingStatus}", REMARKS="${remarks}"`);
 
-        if (sno || efileNo || contractor || startDate || endDate || handleBy || frequency || months || pending) {
+        if (sno || efileNo || contractor || startDate || endDate || handleBy || frequency || months || pendingStatus || remarks) {
             data.push({
                 sno,
                 efileNo,
@@ -823,7 +1013,8 @@ async function saveData() {
                 handleBy,
                 frequency,
                 months,
-                pending
+                pendingStatus,
+                remarks
             });
         }
     });
@@ -853,8 +1044,9 @@ async function saveDataToStorage() {
         const duration = row.querySelector('.duration-input')?.value || '';
         const handleBy = row.querySelector('.handle-by-input')?.value || '';
         const frequency = row.querySelector('.frequency-select')?.value || '';
-        const months = row.querySelector('.months-select')?.value || '';
-        const pending = row.querySelector('.pending-input')?.value || '';
+        const months = row.querySelector('.months-status')?.textContent || '';
+        const pendingStatus = row.querySelector('.pending-status')?.textContent || '';
+        const remarks = row.querySelector('.remarks-input')?.value || '';
 
         dataToSave.push({
             sno,
@@ -866,7 +1058,8 @@ async function saveDataToStorage() {
             handleBy,
             frequency,
             months,
-            pending
+            pendingStatus,
+            remarks
         });
     }
 
@@ -935,7 +1128,7 @@ function printTable() {
         const handleBy = row.querySelector('.handle-by-input')?.value || '';
         const frequency = row.querySelector('.frequency-select')?.value || '';
         const months = row.querySelector('.months-select')?.value || '';
-        const pending = row.querySelector('.pending-input')?.value || '';
+        const remarks = row.querySelector('.remarks-input')?.value || '';
         
         printContent += `
                     <tr>
@@ -990,7 +1183,8 @@ function exportToExcel() {
         'HANDLE BY',
         'FREQUENCY',
         'MONTHS',
-        'PENDING'
+        'PENDING STATUS',
+        'REMARKS'
     ]);
     
     rows.forEach(row => {
@@ -1002,8 +1196,9 @@ function exportToExcel() {
         const duration = row.querySelector('.duration-input')?.value || '-';
         const handleBy = row.querySelector('.handle-by-input')?.value || '';
         const frequency = row.querySelector('.frequency-select')?.value || '';
-        const months = row.querySelector('.months-select')?.value || '';
-        const pending = row.querySelector('.pending-input')?.value || '';
+        const months = row.querySelector('.months-status')?.textContent || '';
+        const pendingStatus = row.querySelector('.pending-status')?.textContent || '';
+        const remarks = row.querySelector('.remarks-input')?.value || '';
         
         exportData.push([
             sno,
@@ -1015,7 +1210,8 @@ function exportToExcel() {
             handleBy,
             frequency,
             months,
-            pending
+            pendingStatus,
+            remarks
         ]);
     });
     
@@ -1053,8 +1249,9 @@ function filterTable(searchTerm) {
         const duration = row.querySelector('.duration-input')?.value.toLowerCase() || '';
         const handleBy = row.querySelector('.handle-by-input')?.value.toLowerCase() || '';
         const frequency = row.querySelector('.frequency-select')?.value.toLowerCase() || '';
-        const months = row.querySelector('.months-select')?.value.toLowerCase() || '';
-        const pending = row.querySelector('.pending-input')?.value.toLowerCase() || '';
+        const remarks = row.querySelector('.remarks-input')?.value.toLowerCase() || '';
+        const monthsStatus = row.querySelector('.months-status')?.textContent.toLowerCase() || '';
+        const pendingStatus = row.querySelector('.pending-status')?.textContent.toLowerCase() || '';
         
         const matches = sno.includes(searchTerm.toLowerCase()) || 
                        efile.includes(searchTerm.toLowerCase()) || 
@@ -1064,13 +1261,208 @@ function filterTable(searchTerm) {
                        duration.includes(searchTerm.toLowerCase()) || 
                        handleBy.includes(searchTerm.toLowerCase()) || 
                        frequency.includes(searchTerm.toLowerCase()) ||
-                       months.includes(searchTerm.toLowerCase()) ||
-                       pending.includes(searchTerm.toLowerCase());
+                       monthsStatus.includes(searchTerm.toLowerCase()) ||
+                       pendingStatus.includes(searchTerm.toLowerCase()) ||
+                       remarks.includes(searchTerm.toLowerCase());
         
         row.style.display = matches ? '' : 'none';
     });
     
     updateTotalCount();
+}
+
+// Initialize global months dropdown functionality
+function initializeGlobalMonthsDropdown() {
+    const globalMonthsSelect = document.getElementById('globalMonthsSelect');
+    if (!globalMonthsSelect) return;
+    
+    globalMonthsSelect.addEventListener('change', function(e) {
+        const selectedMonth = e.target.value;
+        updateAllMonthsStatus(selectedMonth, '');
+    });
+}
+
+// Initialize filter year dropdown functionality
+function initializeFilterYearDropdown() {
+    const filterYearSelect = document.getElementById('filterYearSelect');
+    if (!filterYearSelect) return;
+    
+    filterYearSelect.addEventListener('change', function(e) {
+        const selectedYear = e.target.value;
+        const globalMonthsSelect = document.getElementById('globalMonthsSelect');
+        const selectedMonth = globalMonthsSelect ? globalMonthsSelect.value : '';
+        
+        // Sync with month column - update status with selected year and month
+        updateAllMonthsStatusWithYear(selectedMonth, selectedYear);
+        console.log('Filter year selected:', selectedYear);
+    });
+}
+
+// Update all months status with selected month and year (synced)
+function updateAllMonthsStatusWithYear(selectedMonth, selectedYear) {
+    const tbody = document.getElementById('tableBody');
+    if (!tbody) return;
+    
+    const rows = tbody.querySelectorAll('tr');
+    rows.forEach(row => {
+        const monthsStatusDiv = row.querySelector('.months-status');
+        const pendingStatusDiv = row.querySelector('.pending-status');
+        
+        // Update months status display with year
+        if (monthsStatusDiv) {
+            let displayText = '';
+            let color = '#ffa502'; // Default orange for pending
+            
+            if (selectedMonth && selectedYear) {
+                displayText = `${selectedMonth} ${selectedYear}`;
+                color = '#2ed573'; // Green for selected
+            } else if (selectedMonth) {
+                displayText = selectedMonth;
+                color = '#2ed573'; // Green for selected
+            } else if (selectedYear) {
+                displayText = selectedYear;
+                color = '#2ed573'; // Green for selected
+            } else {
+                displayText = 'Pending';
+                color = '#ffa502'; // Orange for pending
+            }
+            
+            monthsStatusDiv.textContent = displayText;
+            monthsStatusDiv.style.color = color;
+        }
+        
+        // Update pending status based on selected month and year
+        if (pendingStatusDiv) {
+            const pendingStatus = calculatePendingStatusWithYear(row, selectedMonth, selectedYear);
+            pendingStatusDiv.textContent = pendingStatus.text;
+            pendingStatusDiv.style.color = pendingStatus.color;
+        }
+    });
+}
+
+// Calculate pending status with year consideration
+function calculatePendingStatusWithYear(row, selectedMonth, selectedYear) {
+    if (!selectedMonth || !selectedYear) {
+        return { text: '-', color: '#ffa502' };
+    }
+    
+    const endDateInput = row.querySelector('.end-date-input');
+    if (!endDateInput || !endDateInput.value) {
+        return { text: 'Pending', color: '#ffa502' };
+    }
+    
+    const endDate = new Date(endDateInput.value);
+    const currentDate = new Date();
+    
+    // Get month number for comparison
+    const monthMap = {
+        'January': 0, 'February': 1, 'March': 2, 'April': 3,
+        'May': 4, 'June': 5, 'July': 6, 'August': 7,
+        'September': 8, 'October': 9, 'November': 10, 'December': 11
+    };
+    
+    const selectedMonthNum = monthMap[selectedMonth];
+    const selectedYearNum = parseInt(selectedYear);
+    const endMonthNum = endDate.getMonth();
+    const endYearNum = endDate.getFullYear();
+    const currentYearNum = currentDate.getFullYear();
+    const currentMonthNum = currentDate.getMonth();
+    
+    // Determine status based on comparison
+    if (selectedYearNum < endYearNum) {
+        return { text: 'Paid', color: '#2ed573' };
+    } else if (selectedYearNum === endYearNum) {
+        if (selectedMonthNum < endMonthNum) {
+            return { text: 'Paid', color: '#2ed573' };
+        } else if (selectedMonthNum === endMonthNum) {
+            if (currentMonthNum >= endMonthNum && currentYearNum >= endYearNum) {
+                return { text: 'Paid', color: '#2ed573' };
+            } else {
+                return { text: 'Pending', color: '#ffa502' };
+            }
+        } else {
+            return { text: 'Not Paid', color: '#ff4757' };
+        }
+    } else {
+        return { text: 'Not Paid', color: '#ff4757' };
+    }
+}
+
+// Update all months status with selected month only
+function updateAllMonthsStatus(selectedMonth) {
+    const tbody = document.getElementById('tableBody');
+    if (!tbody) return;
+    
+    const rows = tbody.querySelectorAll('tr');
+    rows.forEach(row => {
+        const monthsStatusDiv = row.querySelector('.months-status');
+        const pendingStatusDiv = row.querySelector('.pending-status');
+        
+        // Update months status display
+        if (monthsStatusDiv) {
+            let displayText = '';
+            let color = '#ffa502'; // Default orange for pending
+            
+            if (selectedMonth) {
+                displayText = selectedMonth;
+                color = '#2ed573'; // Green for selected
+            } else {
+                displayText = 'Pending';
+                color = '#ffa502'; // Orange for pending
+            }
+            
+            monthsStatusDiv.textContent = displayText;
+            monthsStatusDiv.style.color = color;
+        }
+        
+        // Update pending status based on selected month only
+        if (pendingStatusDiv) {
+            const pendingStatus = calculatePendingStatus(row, selectedMonth);
+            pendingStatusDiv.textContent = pendingStatus.text;
+            pendingStatusDiv.style.color = pendingStatus.color;
+        }
+    });
+}
+
+// Calculate pending status (Paid/Not Paid/Pending) based on selected month only and end date
+function calculatePendingStatus(row, selectedMonth) {
+    if (!selectedMonth) {
+        return { text: '-', color: '#ffa502' };
+    }
+    
+    const endDateInput = row.querySelector('.end-date-input');
+    if (!endDateInput || !endDateInput.value) {
+        return { text: 'Pending', color: '#ffa502' };
+    }
+    
+    const endDate = new Date(endDateInput.value);
+    const currentDate = new Date();
+    
+    // Get month number for comparison
+    const monthMap = {
+        'January': 0, 'February': 1, 'March': 2, 'April': 3,
+        'May': 4, 'June': 5, 'July': 6, 'August': 7,
+        'September': 8, 'October': 9, 'November': 10, 'December': 11
+    };
+    
+    const selectedMonthNum = monthMap[selectedMonth];
+    const endMonthNum = endDate.getMonth();
+    const endYearNum = endDate.getFullYear();
+    const currentYearNum = currentDate.getFullYear();
+    const currentMonthNum = currentDate.getMonth();
+    
+    // Determine status based on comparison (using current year)
+    if (selectedMonthNum < endMonthNum) {
+        return { text: 'Paid', color: '#2ed573' };
+    } else if (selectedMonthNum === endMonthNum) {
+        if (currentMonthNum >= endMonthNum && currentYearNum >= endYearNum) {
+            return { text: 'Paid', color: '#2ed573' };
+        } else {
+            return { text: 'Pending', color: '#ffa502' };
+        }
+    } else {
+        return { text: 'Not Paid', color: '#ff4757' };
+    }
 }
 
 // Update total count
@@ -1524,6 +1916,82 @@ function showNotification(message, type = 'info') {
     }, 3000);
 }
 
+// Check all durations and update warnings
+function checkAllDurations() {
+    updateAllDurations();
+}
+
+// Update notification badge count (duration <= 60)
+function updateNotificationCount() {
+    const badge = document.getElementById('notificationBadge');
+    if (!badge) return;
+
+    const count = getWarningCount();
+
+    if (count > 0) {
+        badge.textContent = count;
+        badge.classList.add('active');
+    } else {
+        badge.textContent = '0';
+        badge.classList.remove('active');
+    }
+}
+
+// Get count of rows with duration <= 60
+function getWarningCount() {
+    const tbody = document.getElementById('tableBody');
+    if (!tbody) return 0;
+
+    let count = 0;
+    const rows = tbody.querySelectorAll('tr');
+    console.log(`Total rows found: ${rows.length}`);
+    
+    rows.forEach((row, index) => {
+        const startDateInput = row.querySelector('.start-date-input');
+        const endDateInput = row.querySelector('.end-date-input');
+        const durationCell = row.querySelector('.duration-cell');
+        const durationDisplay = row.querySelector('.duration-display');
+
+        // Check for warning class first (most reliable)
+        if (durationDisplay && durationDisplay.classList.contains('warning')) {
+            console.log(`Row ${index}: Found warning class, count = ${count + 1}`);
+            count++;
+        } else if (startDateInput && endDateInput && startDateInput.value && endDateInput.value) {
+            // Calculate days remaining
+            const startDate = new Date(startDateInput.value);
+            const endDate = new Date(endDateInput.value);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0); // Set to start of day for accurate calculation
+            
+            if (endDate >= startDate) {
+                const diffDays = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+                // Use same logic as duration colors: ≤60 days = warning
+                if (diffDays <= 60 && diffDays >= 0) {
+                    console.log(`Row ${index}: Calculated ${diffDays} days <= 60, count = ${count + 1}`);
+                    count++;
+                }
+            }
+        } else if (durationDisplay && durationDisplay.textContent.includes('days')) {
+            // Fallback: parse from text
+            const match = durationDisplay.textContent.match(/(\d+)\s*days/);
+            if (match) {
+                const days = parseInt(match[1], 10);
+                if (days <= 60) {
+                    console.log(`Row ${index}: Parsed ${days} days <= 60, count = ${count + 1}`);
+                    count++;
+                }
+            }
+        } else if (durationDisplay && (durationDisplay.textContent === 'Expired' || durationDisplay.textContent === 'Expires today')) {
+            // Count expired and expires today as warnings
+            console.log(`Row ${index}: Found expired/expires today, count = ${count + 1}`);
+            count++;
+        }
+    });
+
+    console.log(`Final warning count: ${count}`);
+    return count;
+}
+
 // Add CSS animations
 const style = document.createElement('style');
 style.textContent = `
@@ -1662,8 +2130,8 @@ function applyNewFilters() {
                 case 'months':
                     cellValue = row.querySelector('.months-select')?.value || '';
                     break;
-                case 'pending':
-                    cellValue = row.querySelector('.pending-input')?.value || '';
+                case 'remarks':
+                    cellValue = row.querySelector('.remarks-input')?.value || '';
                     break;
             }
             
