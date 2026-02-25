@@ -3,6 +3,9 @@ let history = [];
 let historyIndex = -1;
 const MAX_HISTORY_SIZE = 50;
 
+// Bulk operations
+let selectedRows = new Set();
+
 // Data persistence keys
 const BILL_TRACKER_DATA_KEY = 'billTrackerData'; // Use simple key like contractorListData
 const BILL_TRACKER_HISTORY_KEY = 'billTrackerHistory';
@@ -15,6 +18,7 @@ document.addEventListener('DOMContentLoaded', function() {
     loadDataFromStorage(); // Load saved data
     updateTotalCount();
     setupLiveUpdates(); // Setup live data updates
+    initializeBulkOperations(); // Initialize bulk operations
 });
 
 // Setup event listeners
@@ -523,7 +527,10 @@ function processImportedData(jsonData) {
         console.log('About to generate HTML with sno:', sno);
         tableRow.innerHTML = `
             <td>
-                <input type="text" class="sno-input" placeholder="S.NO" value="${sno}">
+                <div class="sno-cell">
+                    <input type="checkbox" class="sno-checkbox" data-row="${sno}">
+                    <input type="text" class="sno-input" placeholder="S.NO" value="${sno}">
+                </div>
             </td>
             <td>
                 <input type="text" class="efile-no-input" placeholder="Enter Efile No" value="${efileNo}">
@@ -553,13 +560,31 @@ function processImportedData(jsonData) {
                 </select>
             </td>
             <td>
-                <div class="months-status" style="font-size: 11px; color: #ffa502; margin-top: 2px;">Pending</div>
-            </td>
-            <td>
-                <div class="pending-status" style="font-size: 11px; color: #ffa502; margin-top: 2px;">-</div>
+                <select class="months-select">
+                    <option value="">Select Month</option>
+                    <option value="January" ${months === 'January' ? 'selected' : ''}>January</option>
+                    <option value="February" ${months === 'February' ? 'selected' : ''}>February</option>
+                    <option value="March" ${months === 'March' ? 'selected' : ''}>March</option>
+                    <option value="April" ${months === 'April' ? 'selected' : ''}>April</option>
+                    <option value="May" ${months === 'May' ? 'selected' : ''}>May</option>
+                    <option value="June" ${months === 'June' ? 'selected' : ''}>June</option>
+                    <option value="July" ${months === 'July' ? 'selected' : ''}>July</option>
+                    <option value="August" ${months === 'August' ? 'selected' : ''}>August</option>
+                    <option value="September" ${months === 'September' ? 'selected' : ''}>September</option>
+                    <option value="October" ${months === 'October' ? 'selected' : ''}>October</option>
+                    <option value="November" ${months === 'November' ? 'selected' : ''}>November</option>
+                    <option value="December" ${months === 'December' ? 'selected' : ''}>December</option>
+                </select>
             </td>
             <td>
                 <input type="text" class="remarks-input" placeholder="Enter Remarks" value="${row['Remarks'] || row['remarks'] || ''}">
+            </td>
+            <td>
+                <div class="action-buttons">
+                    <button class="action-btn delete" onclick="deleteRow(this)">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
             </td>
         `;
         
@@ -920,7 +945,10 @@ function addRow() {
     
     row.innerHTML = `
         <td>
-            <input type="text" class="sno-input" placeholder="S.NO" value="">
+            <div class="sno-cell">
+                <input type="checkbox" class="sno-checkbox" data-row="${nextSerialNumber}">
+                <input type="text" class="sno-input" placeholder="S.NO" value="${nextSerialNumber}">
+            </div>
         </td>
         <td>
             <input type="text" class="efile-no-input" placeholder="Enter Efile No">
@@ -929,10 +957,10 @@ function addRow() {
             <input type="text" class="contractor-input" placeholder="Enter Contractor">
         </td>
         <td>
-            <input type="date" class="start-date-input" placeholder="Enter Start Date">
+            <input type="date" class="start-date-input">
         </td>
         <td>
-            <input type="date" class="end-date-input" placeholder="Enter End Date">
+            <input type="date" class="end-date-input">
         </td>
         <td>
             <input type="text" class="duration-input" placeholder="Duration" readonly>
@@ -950,13 +978,31 @@ function addRow() {
             </select>
         </td>
         <td>
-            <div class="months-status" style="font-size: 11px; color: #ffa502; margin-top: 2px;">Pending</div>
-        </td>
-        <td>
-            <div class="pending-status" style="font-size: 11px; color: #ffa502; margin-top: 2px;">-</div>
+            <select class="months-select">
+                <option value="">Select Month</option>
+                <option value="January">January</option>
+                <option value="February">February</option>
+                <option value="March">March</option>
+                <option value="April">April</option>
+                <option value="May">May</option>
+                <option value="June">June</option>
+                <option value="July">July</option>
+                <option value="August">August</option>
+                <option value="September">September</option>
+                <option value="October">October</option>
+                <option value="November">November</option>
+                <option value="December">December</option>
+            </select>
         </td>
         <td>
             <input type="text" class="remarks-input" placeholder="Enter Remarks">
+        </td>
+        <td>
+            <div class="action-buttons">
+                <button class="action-btn delete" onclick="deleteRow(this)">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
         </td>
     `;
     
@@ -1990,6 +2036,119 @@ function getWarningCount() {
 
     console.log(`Final warning count: ${count}`);
     return count;
+}
+
+// Initialize bulk operations
+function initializeBulkOperations() {
+    // Individual checkbox functionality only
+    document.addEventListener('change', function(e) {
+        if (e.target.matches('.sno-checkbox')) {
+            const row = e.target.closest('tr');
+            if (e.target.checked) {
+                selectedRows.add(row);
+            } else {
+                selectedRows.delete(row);
+            }
+            updateBulkActionsUI();
+        }
+    });
+    
+    // Bulk edit button
+    const bulkEditBtn = document.getElementById('bulkEditBtn');
+    if (bulkEditBtn) {
+        bulkEditBtn.addEventListener('click', function() {
+            bulkEdit();
+        });
+    }
+    
+    // Bulk delete button
+    const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
+    if (bulkDeleteBtn) {
+        bulkDeleteBtn.addEventListener('click', function() {
+            bulkDelete();
+        });
+    }
+}
+
+// Update bulk actions UI
+function updateBulkActionsUI() {
+    const selectedCount = document.getElementById('selectedCount');
+    const bulkEditBtn = document.getElementById('bulkEditBtn');
+    const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
+    
+    const count = selectedRows.size;
+    
+    if (count > 0) {
+        selectedCount.textContent = `${count} selected`;
+        selectedCount.style.display = 'inline-block';
+        bulkEditBtn.style.display = 'inline-flex';
+        bulkDeleteBtn.style.display = 'inline-flex';
+    } else {
+        selectedCount.style.display = 'none';
+        bulkEditBtn.style.display = 'none';
+        bulkDeleteBtn.style.display = 'none';
+    }
+}
+
+// Bulk edit function
+function bulkEdit() {
+    if (selectedRows.size === 0) {
+        alert('Please select rows to edit');
+        return;
+    }
+    
+    // Enable edit mode for selected rows
+    selectedRows.forEach(row => {
+        const inputs = row.querySelectorAll('input, select');
+        inputs.forEach(input => {
+            input.removeAttribute('readonly');
+            input.classList.add('edit-mode');
+        });
+    });
+    
+    alert(`Editing ${selectedRows.size} rows. Make your changes and save.`);
+}
+
+// Bulk delete function
+function bulkDelete() {
+    if (selectedRows.size === 0) {
+        alert('Please select rows to delete');
+        return;
+    }
+    
+    if (confirm(`Are you sure you want to delete ${selectedRows.size} selected row(s)?`)) {
+        selectedRows.forEach(row => {
+            // Add to audit trail
+            const sno = row.querySelector('.sno-input')?.value || 'Unknown';
+            addAuditEntry('bulk_delete', sno, 'Row deleted', 'Bulk delete operation');
+            
+            row.remove();
+        });
+        
+        selectedRows.clear();
+        updateBulkActionsUI();
+        updateTotalCount();
+        assignSequentialSNO();
+        
+        alert(`Successfully deleted ${selectedRows.size} rows.`);
+    }
+}
+
+// Add audit entry
+function addAuditEntry(action, sno, details, type) {
+    const auditEntry = {
+        timestamp: new Date().toISOString(),
+        action: action,
+        sno: sno,
+        details: details,
+        type: type,
+        user: 'current_user' // This would come from authentication
+    };
+    
+    // Store in sessionStorage for now
+    let auditLog = JSON.parse(sessionStorage.getItem('billTrackerAudit') || '[]');
+    auditLog.push(auditEntry);
+    sessionStorage.setItem('billTrackerAudit', JSON.stringify(auditLog));
 }
 
 // Add CSS animations
