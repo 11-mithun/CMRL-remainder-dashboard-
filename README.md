@@ -32,12 +32,21 @@ CMRL Dashboard is a comprehensive web-based management system for tracking contr
 ## ✨ Features
 
 ### 🏠 Dashboard Features
-- **Multi-Module Navigation**: Contractor List, Bill Tracker, EPBG Management
+- **Multi-Module Navigation**: Contractor List, Bill Tracker, EPBG Management, Analytics Dashboard
 - **Real-time Data Sync**: Automatic saving to backend with localStorage fallback
 - **Excel Integration**: Import/Export functionality for all modules
 - **Responsive Design**: Mobile-friendly interface with adaptive layouts
 - **Theme System**: Dark/Light mode toggle with persistent preferences
 - **Role-Based Access**: Admin/Editor/Viewer permissions
+- **Mobile Navigation**: Hamburger menu with overlay for mobile devices
+- **Sidebar Navigation**: Collapsible sidebar with module shortcuts
+- **Notification System**: Real-time alerts and expiry warnings
+- **AI-Powered Analytics**: Intelligent insights and predictions
+- **KPI Tracking**: Key performance indicators and metrics
+- **Interactive Charts**: Data visualization with Chart.js
+- **Bulk Operations**: Multi-row selection and actions
+- **Advanced Filtering**: Column-based filtering and search
+- **Audit Trail**: Complete operation logging and tracking
 
 ### 📊 Contractor List Module
 - **Dynamic Row Management**: Add/remove rows with automatic serial numbering
@@ -72,6 +81,19 @@ CMRL Dashboard is a comprehensive web-based management system for tracking contr
 - **Document Management**: Multiple file attachments per record
 - **Dual Attachment System**: BG number and document attachments
 
+### 📈 Analytics Dashboard Module
+- **Data Visualization**: Interactive charts with Chart.js
+- **KPI Tracking**: Real-time key performance indicators
+- **AI Analytics**: Machine learning-powered insights
+- **Trend Analysis**: Historical data patterns and predictions
+- **Performance Metrics**: Module-specific performance tracking
+- **Export Reports**: PDF and Excel report generation
+- **Real-time Updates**: Live data synchronization
+- **Mobile Responsive**: Touch-optimized interface
+- **Custom Dashboards**: Configurable widget layouts
+- **Data Filtering**: Advanced filter controls
+- **Comparative Analysis**: Multi-module data comparison
+
 ---
 
 ## 📱 Pages & Modules
@@ -83,12 +105,21 @@ CMRL Dashboard is a comprehensive web-based management system for tracking contr
 - Session management
 - Remember me functionality
 - Theme-aware login interface
+- Video background with animated effects
+- Animated falling leaves effect
+- CMRL branding with logo
 
 **UI Components:**
-- Animated background
+- Animated video background (Train_Video_Generation_With_Effects.mp4)
 - Glass-morphism form design
+- Animated leaf particles
+- CMRL logo display
 - Responsive layout
 - Error/success notifications
+- Username and password input fields
+- Remember me checkbox
+- Forgot password link
+- Theme toggle integration
 
 ### 2. Contractor List Page (`/contractor-list`)
 **Features:**
@@ -141,12 +172,45 @@ CMRL Dashboard is a comprehensive web-based management system for tracking contr
 - Validity tracking
 - Document management
 - GEM integration
+- Dual attachment system (BG number + documents)
+- Multi-file upload capability
+- Validity countdown display
 
 **UI Components:**
 - Guarantee status cards
-- Validity countdown
-- Document preview
+- Validity countdown timers
+- Document preview modals
 - Multi-file attachment system
+- BG number upload interface
+- Document management controls
+
+### 5. Analytics Dashboard (`/analytics`)
+**Features:**
+- Data visualization with Chart.js
+- KPI tracking and metrics
+- AI-powered analytics insights
+- Real-time data updates
+- Interactive charts and graphs
+- Performance analytics
+- Trend analysis
+- Export capabilities
+
+**UI Components:**
+- Interactive charts (line, bar, pie, doughnut)
+- KPI cards with metrics
+- Data filtering controls
+- Export buttons for reports
+- AI insights panel
+- Responsive grid layout
+- Mobile menu toggle
+- Sidebar navigation
+
+**Mobile Features:**
+- Mobile menu toggle button
+- Mobile overlay for navigation
+- Responsive sidebar
+- Touch-friendly interface
+- Adaptive chart sizing
 
 ---
 
@@ -372,6 +436,122 @@ function toggleTheme() {
 }
 ```
 
+### Bulk Action Buttons
+```css
+.bulk-btn {
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: none;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.bulk-btn.edit {
+    background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(46, 204, 113, 0.4);
+}
+
+.bulk-btn.delete {
+    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+}
+
+.bulk-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+```
+
+### Mobile Navigation Buttons
+```css
+.mobile-menu-toggle {
+    display: none;
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 1000;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 10px;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.sidebar-toggle-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: var(--text-primary);
+    border-radius: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.sidebar-toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+}
+```
+
+### Theme Toggle Button
+```css
+.theme-toggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 50px;
+    padding: 8px 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    z-index: 1000;
+}
+
+.theme-toggle:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+```
+
+### Notification Badge
+```css
+.notification-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: var(--danger);
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: bold;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+```
+
 ---
 
 ## 🗄️ Database Schema
@@ -475,18 +655,62 @@ PUT  /api/user/theme       - Update user theme preference
 ```
 GET  /api/contractor-list    - Get all contractor records
 POST /api/contractor-list   - Save contractor records
+PUT  /api/contractor-list   - Update contractor record
+DELETE /api/contractor-list - Delete contractor record
 ```
 
 ### Bill Tracker Endpoints
 ```
 GET  /api/bill-tracker      - Get all bill records
 POST /api/bill-tracker     - Save bill records
+PUT  /api/bill-tracker     - Update bill record
+DELETE /api/bill-tracker   - Delete bill record
+GET  /api/bill-tracker/warnings - Get expiry warnings
 ```
 
 ### EPBG Endpoints
 ```
 GET  /api/epbg             - Get all EPBG records
 POST /api/epbg            - Save EPBG records
+PUT  /api/epbg            - Update EPBG record
+DELETE /api/epbg          - Delete EPBG record
+POST /api/epbg/upload-bg  - Upload BG number attachment
+```
+
+### Analytics Endpoints
+```
+GET  /api/analytics/kpi    - Get KPI metrics
+GET  /api/analytics/trends - Get trend analysis
+GET  /api/analytics/reports - Generate reports
+POST /api/analytics/ai-insights - Get AI-powered insights
+```
+
+### User Management Endpoints
+```
+GET  /api/users            - Get all users (admin only)
+POST /api/users           - Create new user (admin only)
+PUT  /api/users           - Update user (admin/self)
+DELETE /api/users         - Delete user (admin only)
+```
+
+### API Response Format
+```json
+{
+    "success": true,
+    "data": {...},
+    "message": "Operation successful",
+    "timestamp": "2026-02-25T14:39:00Z"
+}
+```
+
+### Error Response Format
+```json
+{
+    "success": false,
+    "error": "Error message",
+    "code": "ERROR_CODE",
+    "timestamp": "2026-02-25T14:39:00Z"
+}
 ```
 
 ---
@@ -497,23 +721,34 @@ POST /api/epbg            - Save EPBG records
 CMRL-remainder-dashboard-/
 ├── backend/
 │   ├── app.py              # Main Flask application
+│   ├── init_db.py          # Database initialization script
+│   ├── check_users.py      # User management utility
 │   ├── requirements.txt     # Python dependencies
 │   └── .env              # Environment variables
 ├── frontend/
 │   ├── index.html          # Main HTML file (Contractor List)
+│   ├── login.html          # Login page
 │   ├── bill-tracker.html   # Bill Tracker page
 │   ├── epbg.html           # EPBG management page
 │   ├── analytics.html      # Analytics dashboard
 │   ├── styles.css          # Complete styling
+│   ├── login.css           # Login page specific styles
 │   ├── script.js          # Main JavaScript logic (Contractor List)
+│   ├── login.js            # Login page JavaScript
 │   ├── bill-tracker.js    # Bill Tracker JavaScript
 │   ├── epbg.js            # EPBG JavaScript
 │   ├── analytics.js       # Analytics JavaScript
+│   ├── kpi-dashboard.js   # KPI dashboard functionality
+│   ├── ai-analytics.js   # AI-powered analytics
 │   ├── auth.js            # Authentication module
-│   ├── api.js            # API communication layer
-│   └── ai-analytics.js   # AI-powered analytics
+│   └── api.js            # API communication layer
 ├── database/
-│   └── schema.sql         # Database schema
+│   ├── database.sql        # Complete database schema
+│   └── add_bg_no_attachment_columns.sql  # EPBG table migration
+├── assets/
+│   ├── CMRL.png           # CMRL logo
+│   ├── favicon.ico        # Website favicon
+│   └── Train_Video_Generation_With_Effects.mp4  # Login background video
 └── README.md             # This documentation
 ```
 
@@ -551,9 +786,26 @@ pip install -r requirements.txt
 cp .env.example .env
 # Edit .env with your database credentials
 
+# Initialize database
+python init_db.py
+
+# Check users (optional)
+python check_users.py
+
 # Run the application
 python app.py
 ```
+
+### Backend Utilities
+- **init_db.py**: Database initialization script
+  - Creates all required tables
+  - Sets up admin user account
+  - Returns success/failure status
+  
+- **check_users.py**: User management utility
+  - Lists all current users in database
+  - Displays user roles and credentials
+  - Useful for debugging authentication issues
 
 ### Frontend Setup
 ```bash
@@ -572,15 +824,18 @@ http://localhost:8000
 ### Database Setup
 ```sql
 -- Create database
-CREATE DATABASE cmrl_dashboard;
+CREATE DATABASE reminder_dashboard;
 
 -- Use database
-USE cmrl_dashboard;
+USE reminder_dashboard;
 
--- Import schema
-source database/schema.sql;
+-- Import main schema
+source database/database.sql;
 
--- Create admin user
+-- Run EPBG migration (if needed)
+source database/add_bg_no_attachment_columns.sql;
+
+-- Create admin user (handled by init_db.py)
 INSERT INTO users (name, email, password, role) 
 VALUES ('Admin', 'admin@cmrl.com', 'admin123', 'admin');
 ```
@@ -634,10 +889,25 @@ VALUES ('Admin', 'admin@cmrl.com', 'admin123', 'admin');
 3. **Upload Documents**: Attach relevant files
 4. **GEM Integration**: Link with GEM bid numbers
 
+### Analytics Dashboard
+1. **View KPIs**: Monitor key performance indicators
+2. **Interactive Charts**: Click and interact with data visualizations
+3. **AI Insights**: Review AI-powered analytics and predictions
+4. **Export Reports**: Generate PDF/Excel reports
+5. **Filter Data**: Apply advanced filters for specific analysis
+6. **Compare Modules**: View comparative analysis across modules
+7. **Mobile Access**: Use touch-optimized interface on mobile devices
+
 ### Theme Customization
 1. **Toggle Theme**: Click theme toggle button
 2. **Persistent Preference**: Theme choice is saved
 3. **System Sync**: Preference synced with backend
+
+### Mobile Navigation
+1. **Hamburger Menu**: Click mobile menu toggle to open navigation
+2. **Overlay Navigation**: Use mobile overlay for module access
+3. **Touch Gestures**: Swipe and tap for navigation
+4. **Responsive Layout**: Automatic adaptation to screen size
 
 ---
 
@@ -736,6 +1006,127 @@ Advanced filtering capabilities using existing column values:
 
 ---
 
+## 🔧 JavaScript Modules
+
+### Core JavaScript Files
+
+#### **login.js** - Authentication Module
+```javascript
+// Features:
+- Form validation and submission
+- Loading states and error handling
+- Session management
+- Theme integration
+- Redirect after successful login
+- Password visibility toggle
+- Remember me functionality
+```
+
+#### **auth.js** - Authentication Service
+```javascript
+// Features:
+- Session token management
+- Auto-logout on session expiry
+- Role-based access control
+- API authentication headers
+- User profile management
+- Theme preference sync
+```
+
+#### **api.js** - API Communication Layer
+```javascript
+// Features:
+- HTTP request/response handling
+- Error handling and retry logic
+- Data serialization/deserialization
+- Request queuing and caching
+- Backend synchronization
+- Offline mode support
+```
+
+#### **kpi-dashboard.js** - KPI Metrics
+```javascript
+// Features:
+- Real-time KPI calculations
+- Sparkline charts generation
+- Data caching and optimization
+- Auto-refresh functionality
+- Performance metrics tracking
+- Business intelligence logic
+```
+
+#### **ai-analytics.js** - AI-Powered Analytics
+```javascript
+// Features:
+- Machine learning predictions
+- Trend analysis algorithms
+- Anomaly detection
+- Data pattern recognition
+- Predictive analytics
+- Insight generation
+```
+
+### Module-Specific JavaScript Files
+
+#### **script.js** - Contractor List Logic
+- Dynamic row management
+- Excel import/export
+- File attachment handling
+- Bulk operations
+- Duration calculations
+- Data validation
+
+#### **bill-tracker.js** - Bill Tracker Logic
+- Bill lifecycle management
+- Notification system
+- Real-time duration updates
+- Bulk operations
+- Advanced filtering
+- Payment tracking
+
+#### **epbg.js** - EPBG Management Logic
+- Bank guarantee tracking
+- Validity monitoring
+- Dual attachment system
+- GEM integration
+- Document management
+- Expiry alerts
+
+#### **analytics.js** - Analytics Dashboard Logic
+- Chart.js integration
+- Interactive visualizations
+- Data filtering
+- Report generation
+- Mobile responsiveness
+- Real-time updates
+
+### JavaScript Architecture
+```javascript
+// Module Pattern Structure
+const ModuleName = {
+    // Private variables
+    privateVar: value,
+    
+    // Public methods
+    publicMethod() {
+        // Implementation
+    },
+    
+    // Initialization
+    init() {
+        this.setupEventListeners();
+        this.loadData();
+    }
+};
+
+// Event-driven architecture
+document.addEventListener('DOMContentLoaded', () => {
+    ModuleName.init();
+});
+```
+
+---
+
 ## 🔧 Configuration
 
 ### Environment Variables (.env)
@@ -744,7 +1135,7 @@ Advanced filtering capabilities using existing column values:
 DB_HOST=localhost
 DB_USER=root
 DB_PASSWORD=your_password
-DB_NAME=cmrl_dashboard
+DB_NAME=reminder_dashboard
 
 # Email Configuration (for password reset)
 EMAIL_HOST=smtp.gmail.com
@@ -771,6 +1162,12 @@ SECRET_KEY=your_secret_key_here
 2. **File Upload Not Working**: Verify file size limits and permissions
 3. **Theme Not Persisting**: Check localStorage and backend sync
 4. **API Errors**: Verify database connection and endpoint URLs
+5. **Mobile Menu Not Working**: Check JavaScript event listeners and CSS media queries
+6. **Charts Not Loading**: Verify Chart.js library inclusion and data format
+7. **Notifications Not Showing**: Check browser permissions and JavaScript console
+8. **Bulk Operations Failing**: Verify checkbox event listeners and selectedRows Set
+9. **Excel Import Errors**: Check file format and column mapping
+10. **Video Background Not Playing**: Verify video file path and browser compatibility
 
 ### Debug Mode
 ```javascript
@@ -783,7 +1180,31 @@ console.log('API Response:', response);
 // Monitor data changes
 const observer = new MutationObserver(callback);
 observer.observe(document.body, { childList: true, subtree: true });
+
+// Debug bulk operations
+console.log('Selected rows:', selectedRows);
+console.log('Bulk operations status:', updateBulkActionsUI());
+
+// Debug notifications
+console.log('Warning count:', getWarningCount());
+console.log('Notification badge:', document.getElementById('notificationBadge'));
+
+// Debug mobile navigation
+console.log('Mobile menu state:', document.getElementById('mobileMenuToggle'));
+console.log('Sidebar state:', document.getElementById('sidebar'));
+
+// Debug theme system
+console.log('Current theme:', document.body.getAttribute('data-theme'));
+console.log('Theme preference:', localStorage.getItem('theme'));
 ```
+
+### Performance Optimization
+- **Lazy Loading**: Charts load data on demand
+- **Debounced Updates**: Input changes debounced to reduce API calls
+- **Caching**: LocalStorage caching for frequently accessed data
+- **Minified Assets**: Production uses minified CSS and JavaScript
+- **Image Optimization**: Logo and assets optimized for web
+- **Video Compression**: Background video compressed for faster loading
 
 ---
 
@@ -802,5 +1223,80 @@ For technical support and feature requests:
 
 ---
 
+## 📋 Complete Feature Summary
+
+### **Core Features Implemented:**
+✅ **Authentication System** - Login/logout with session management  
+✅ **Multi-Module Dashboard** - 5 interconnected modules  
+✅ **Real-time Data Sync** - Backend + localStorage fallback  
+✅ **Excel Integration** - Import/export for all modules  
+✅ **Theme System** - Dark/light mode with persistence  
+✅ **Mobile Responsive** - Touch-optimized interface  
+✅ **Bulk Operations** - Multi-row selection and actions  
+✅ **Notification System** - Real-time alerts and expiry warnings  
+✅ **Advanced Filtering** - Column-based hide/show functionality  
+✅ **Audit Trail** - Complete operation logging  
+✅ **AI Analytics** - Machine learning-powered insights  
+✅ **Interactive Charts** - Data visualization with Chart.js  
+✅ **KPI Tracking** - Performance metrics and monitoring  
+
+### **Backend Features:**
+✅ **Flask Application** - RESTful API with proper error handling  
+✅ **Database Management** - MySQL with proper schema and migrations  
+✅ **User Authentication** - Session-based with role management  
+✅ **File Upload Handling** - Base64 encoding for attachments  
+✅ **API Endpoints** - Complete CRUD operations for all modules  
+✅ **Database Utilities** - init_db.py and check_users.py scripts  
+✅ **Environment Configuration** - Secure .env file management  
+
+### **Frontend JavaScript Modules:**
+✅ **login.js** - Authentication form handling and validation  
+✅ **auth.js** - Session management and role-based access  
+✅ **api.js** - HTTP communication layer with error handling  
+✅ **script.js** - Contractor list management logic  
+✅ **bill-tracker.js** - Bill lifecycle and notification system  
+✅ **epbg.js** - Bank guarantee and document management  
+✅ **analytics.js** - Chart.js integration and data visualization  
+✅ **kpi-dashboard.js** - Real-time KPI calculations and sparklines  
+✅ **ai-analytics.js** - Machine learning insights and predictions  
+
+### **UI Components & Elements:**
+✅ **Animated Login** - Video background + particle effects  
+✅ **Sidebar Navigation** - Collapsible with module shortcuts  
+✅ **Mobile Menu** - Hamburger menu with overlay  
+✅ **Header Actions** - Save, undo, redo, refresh, print, export, import  
+✅ **Bulk Action Toolbar** - Edit selected, delete selected  
+✅ **Notification Bell** - Badge counter with modal  
+✅ **Theme Toggle** - Fixed position theme switcher  
+✅ **Filter Dropdowns** - Multi-select column filters  
+✅ **Checkbox Selection** - Row selection controls  
+✅ **Status Indicators** - Color-coded urgency displays  
+✅ **Progress Bars** - Visual progress tracking  
+✅ **Modal Windows** - File preview, notifications, confirmations  
+
+### **Technical Features:**
+✅ **CSS Variables** - Dynamic theming system  
+✅ **Flexbox/Grid** - Modern layout system  
+✅ **ES6+ JavaScript** - Modern syntax and features  
+✅ **Base64 Encoding** - File attachment handling  
+✅ **Session Storage** - Temporary data persistence  
+✅ **Debounced Events** - Performance optimization  
+✅ **Lazy Loading** - On-demand data loading  
+✅ **Error Handling** - Comprehensive error management  
+✅ **Cross-browser Support** - Compatible with major browsers  
+✅ **Accessibility** - ARIA labels and keyboard navigation  
+
+### **Database Features:**
+✅ **MySQL Database** - Proper relational schema design  
+✅ **User Management** - Role-based authentication system  
+✅ **Data Migrations** - Schema updates and versioning  
+✅ **Audit Logging** - Operation tracking and history  
+✅ **File Storage** - Base64 encoded attachments  
+✅ **Data Integrity** - Proper constraints and validation  
+
+---
+
 *Last Updated: February 25, 2026*
 *Version: 1.2.0*
+*Files: 9 JavaScript modules, 3 Python utilities, 2 SQL schemas*
+*Features: 60+ documented features and components*
