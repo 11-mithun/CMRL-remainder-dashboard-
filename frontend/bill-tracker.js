@@ -2075,78 +2075,181 @@ function initializeTableFilters() {
     }
 }
 
-// Apply filters with clean logic
+// Apply filters with clean logic - HIDE SELECTED COLUMNS
 function applyNewFilters() {
+    console.log('=== DEBUGGING FILTER APPLICATION ===');
+    
     const selectedColumns = getSelectedColumns();
     const tbody = document.getElementById('tableBody');
     const rows = tbody.querySelectorAll('tr');
     
-    if (selectedColumns.length === 0) {
-        // If no columns selected, show all rows
-        rows.forEach(row => {
-            row.style.display = '';
-        });
-        updateFilterStatus(false);
-        return;
-    }
+    console.log('1. Selected columns to HIDE:', selectedColumns);
+    console.log('2. Total rows found:', rows.length);
     
-    // Hide all rows first
-    rows.forEach(row => {
-        row.style.display = 'none';
+    // Get column indices for selected columns
+    const columnIndices = getColumnIndices(selectedColumns);
+    console.log('3. Column indices to HIDE:', columnIndices);
+    
+    let visibleRowCount = 0;
+    let hiddenRowCount = 0;
+    
+    rows.forEach((row, index) => {
+        console.log(`4. Row ${index}: Processing row`);
+        
+        // If no columns selected, show all rows with all columns
+        if (selectedColumns.length === 0) {
+            console.log(`5. Row ${index}: No columns selected - showing all columns`);
+            showAllRowCells(row);
+            row.style.display = '';
+            visibleRowCount++;
+            return;
+        }
+        
+        // Show row and hide selected columns
+        console.log(`6. Row ${index}: Hiding selected columns`);
+        row.style.display = '';
+        showAllRowCells(row); // Show all first
+        
+        // Hide selected columns
+        columnIndices.forEach(colIndex => {
+            const cells = row.querySelectorAll('td');
+            if (cells[colIndex]) {
+                cells[colIndex].style.display = 'none';
+                console.log(`   Hiding cell ${colIndex} in row ${index}`);
+            }
+        });
+        
+        visibleRowCount++;
     });
     
-    // Show rows that have data in selected columns
-    rows.forEach(row => {
-        let shouldShow = false;
-        
-        selectedColumns.forEach(column => {
-            let cellValue = '';
-            
-            switch(column) {
-                case 'sno':
-                    cellValue = row.querySelector('.sno-input')?.value || '';
-                    break;
-                case 'efile':
-                    cellValue = row.querySelector('.efile-no-input')?.value || '';
-                    break;
-                case 'contractor':
-                    cellValue = row.querySelector('.contractor-input')?.value || '';
-                    break;
-                case 'startDate':
-                    cellValue = row.querySelector('.start-date-input')?.value || '';
-                    break;
-                case 'endDate':
-                    cellValue = row.querySelector('.end-date-input')?.value || '';
-                    break;
-                case 'duration':
-                    cellValue = row.querySelector('.duration-input')?.value || '';
-                    break;
-                case 'handleBy':
-                    cellValue = row.querySelector('.handle-by-input')?.value || '';
-                    break;
-                case 'frequency':
-                    cellValue = row.querySelector('.frequency-select')?.value || '';
-                    break;
-                case 'months':
-                    cellValue = row.querySelector('.months-select')?.value || '';
-                    break;
-                case 'remarks':
-                    cellValue = row.querySelector('.remarks-input')?.value || '';
-                    break;
-            }
-            
-            if (cellValue.trim() !== '') {
-                shouldShow = true;
-            }
-        });
-        
-        if (shouldShow) {
-            row.style.display = '';
+    // Show/hide table headers based on selected columns
+    updateTableHeaders(selectedColumns);
+    
+    console.log('7. Final counts - Visible:', visibleRowCount, 'Hidden:', hiddenRowCount);
+    console.log('=== DEBUGGING COMPLETE ===');
+    
+    // Update status
+    updateFilterStatus(selectedColumns.length > 0);
+    updateTotalCount();
+}
+
+// Helper: Get selected column names
+function getSelectedColumns() {
+    const selectedColumns = [];
+    const allFilterCheckboxes = document.querySelectorAll('.filter-checkbox');
+    
+    console.log('   getSelectedColumns: Total filter checkboxes found:', allFilterCheckboxes.length);
+    
+    allFilterCheckboxes.forEach((checkbox, index) => {
+        console.log(`   Filter ${index}: ${checkbox.dataset.column} = ${checkbox.checked}`);
+        if (checkbox.checked) {
+            selectedColumns.push(checkbox.dataset.column);
         }
     });
     
-    updateFilterStatus(true);
-    updateTotalCount();
+    console.log('   getSelectedColumns: Returning:', selectedColumns);
+    return selectedColumns;
+}
+
+// Helper: Get column indices (0-based) - BILL TRACKER MAPPING
+function getColumnIndices(columnNames) {
+    const columnMap = {
+        'sno': 0,
+        'efile': 1, 
+        'contractor': 2,
+        'startDate': 3,
+        'endDate': 4,
+        'duration': 5,
+        'handleBy': 6,
+        'frequency': 7,
+        'months': 8,
+        'remarks': 9
+    };
+    
+    return columnNames.map(name => columnMap[name]).filter(index => index !== undefined);
+}
+
+// Helper: Show all cells in a row
+function showAllRowCells(row) {
+    const cells = row.querySelectorAll('td');
+    cells.forEach(cell => {
+        cell.style.display = '';
+    });
+}
+
+// Helper: Hide all cells in a row
+function hideAllRowCells(row) {
+    const cells = row.querySelectorAll('td');
+    cells.forEach(cell => {
+        cell.style.display = 'none';
+    });
+}
+
+// Helper: Show selected cells in a row
+function showSelectedRowCells(row, columnIndices) {
+    const cells = row.querySelectorAll('td');
+    console.log(`   showSelectedRowCells: Total cells = ${cells.length}, indices to show = ${columnIndices}`);
+    
+    // Always show S.NO (index 0) and ACTION (index 10) columns
+    if (cells[0]) cells[0].style.display = ''; // S.NO
+    if (cells[10]) cells[10].style.display = ''; // ACTION
+    
+    // Show selected columns
+    columnIndices.forEach(index => {
+        if (cells[index]) {
+            cells[index].style.display = '';
+            console.log(`   Showing cell ${index}: ${cells[index].textContent.substring(0, 20)}`);
+        } else {
+            console.log(`   Cell ${index} not found`);
+        }
+    });
+}
+
+// Show/hide table headers based on selected columns - HIDE SELECTED COLUMNS
+function updateTableHeaders(selectedColumns) {
+    const table = document.querySelector('.data-table');
+    if (!table) return;
+    
+    const headers = table.querySelectorAll('th');
+    const columnMap = {
+        'sno': 0,
+        'efile': 1, 
+        'contractor': 2,
+        'startDate': 3,
+        'endDate': 4,
+        'duration': 5,
+        'handleBy': 6,
+        'frequency': 7,
+        'months': 8,
+        'remarks': 9,
+        'action': 10
+    };
+    
+    // If no columns selected, show all headers
+    if (selectedColumns.length === 0) {
+        headers.forEach(header => {
+            header.style.display = '';
+        });
+        return;
+    }
+    
+    // Show all headers first
+    headers.forEach(header => {
+        header.style.display = '';
+    });
+    
+    // Hide selected column headers
+    selectedColumns.forEach(columnName => {
+        const index = columnMap[columnName];
+        if (index !== undefined && headers[index]) {
+            headers[index].style.display = 'none';
+            console.log(`   Hiding header ${index} for column ${columnName}`);
+        }
+    });
+    
+    // Always show S.NO and ACTION columns for usability
+    if (headers[0]) headers[0].style.display = ''; // S.NO
+    if (headers[10]) headers[10].style.display = ''; // ACTION
 }
 
 // Clear all filters
