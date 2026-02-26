@@ -1926,6 +1926,13 @@ text-align: center;
     width: 216px; /* 180px × 1.2 = 216px (20% increase) */
 }
 
+.data-table th:nth-child(12),
+.data-table td:nth-child(12) {
+    width: 80px; /* ACTION column */
+    text-align: center;
+    padding: 3px 2px !important;
+}
+
 /* Specific styling for status columns to ensure proper alignment */
 .data-table td:nth-child(9) .months-status,
 .data-table td:nth-child(10) .pending-status {

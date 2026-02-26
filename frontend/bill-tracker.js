@@ -1,4 +1,9 @@
 // Global variables
+let rowCounter = 0;
+let savedData = [];
+const STORAGE_KEY = 'billTrackerData';
+
+// Undo/Redo System
 let history = [];
 let historyIndex = -1;
 const MAX_HISTORY_SIZE = 50;
@@ -6,16 +11,213 @@ const MAX_HISTORY_SIZE = 50;
 // Bulk operations
 let selectedRows = new Set();
 
-// Data persistence keys
-const BILL_TRACKER_DATA_KEY = 'billTrackerData'; // Use simple key like contractorListData
-const BILL_TRACKER_HISTORY_KEY = 'billTrackerHistory';
-const BILL_TRACKER_HISTORY_INDEX_KEY = 'billTrackerHistoryIndex';
-const ANALYTICS_DATA_KEY = 'analyticsData'; // Add analytics key
+// Convert file to base64 string
+function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
+// Convert base64 string back to file
+function base64ToFile(base64String, fileName) {
+    const arr = base64String.split(',');
+    const mime = arr[0].match(/:(.*?);/)[1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new File([u8arr], fileName, { type: mime });
+}
+
+// Open file visually in browser (not download)
+function openFileVisually(fileUrl, fileName, fileType) {
+    // Check if file type can be displayed inline
+    const displayableTypes = [
+        'application/pdf',
+        'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
+        'text/plain', 'text/html', 'text/css', 'text/javascript',
+        'application/json', 'application/xml'
+    ];
+
+    const isDisplayable = displayableTypes.some(type => fileType && fileType.includes(type.split('/')[1])) ||
+        displayableTypes.includes(fileType);
+
+    if (isDisplayable) {
+        // Open in new window/tab for inline viewing
+        const newWindow = window.open(fileUrl, '_blank');
+        if (!newWindow) {
+            alert('Please allow pop-ups to view the file.');
+        }
+    } else {
+        // For other file types, try to open in new window
+        const newWindow = window.open(fileUrl, '_blank');
+        if (!newWindow) {
+            alert('Please allow pop-ups to view the file.');
+        }
+    }
+}
+
+// View file function
+function viewFile(fileUrl, fileName, fileType) {
+    openFileVisually(fileUrl, fileName, fileType);
+}
+
+// Setup event listeners for a row
+function setupRowEventListeners(row) {
+    // Add event listeners for date inputs to calculate duration
+    const startDateInput = row.querySelector('.start-date-input');
+    const endDateInput = row.querySelector('.end-date-input');
+    
+    if (startDateInput) {
+        startDateInput.addEventListener('change', function() {
+            calculateDurationForDates(startDateInput, endDateInput, row.querySelector('.duration-input'));
+        });
+    }
+    
+    if (endDateInput) {
+        endDateInput.addEventListener('change', function() {
+            calculateDurationForDates(startDateInput, endDateInput, row.querySelector('.duration-input'));
+        });
+    }
+    
+    // Add frequency change listener
+    const frequencySelect = row.querySelector('.frequency-select');
+    if (frequencySelect) {
+        frequencySelect.addEventListener('change', function() {
+            // Mark as manually edited to prevent auto-sync
+            frequencySelect.setAttribute('data-manual-edit', 'true');
+        });
+    }
+}
+
+// Calculate duration for specific date inputs
+function calculateDurationForDates(startDateInput, endDateInput, durationInput) {
+    if (!startDateInput || !endDateInput || !durationInput) return;
+    
+    const startDate = new Date(startDateInput.value);
+    const endDate = new Date(endDateInput.value);
+    const currentDate = new Date();
+    
+    if (startDate && endDate && !isNaN(startDate) && !isNaN(endDate)) {
+        // Calculate days remaining from current date to end date
+        const daysRemaining = Math.ceil((endDate - currentDate) / (1000 * 60 * 60 * 24));
+        
+        if (daysRemaining < 0) {
+            durationInput.value = 'Expired';
+            durationInput.style.color = '#ff4757';
+        } else if (daysRemaining === 0) {
+            durationInput.value = 'Expires today';
+            durationInput.style.color = '#ff4757';
+        } else {
+            durationInput.value = daysRemaining + ' days left';
+            
+            // Apply color coding based on days remaining
+            if (daysRemaining <= 60) {
+                durationInput.style.color = '#ff4757'; // Red
+            } else if (daysRemaining > 60 && daysRemaining <= 90) {
+                durationInput.style.color = '#ffa502'; // Yellow
+            } else {
+                durationInput.style.color = '#2ed573'; // Green
+            }
+        }
+    } else {
+        durationInput.value = '';
+        durationInput.style.color = '';
+    }
+}
+
+// Load synced data from other pages
+function loadSyncedData(syncData) {
+    try {
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = '';
+        
+        syncData.forEach((rowData, index) => {
+            const row = document.createElement('tr');
+            const snoValue = rowData.sno || (index + 1);
+            rowCounter = Math.max(rowCounter, parseInt(snoValue) || index + 1);
+            
+            // Create row HTML with synced data
+            row.innerHTML = `
+                <td>
+                    <div class="sno-cell">
+                        <input type="checkbox" class="sno-checkbox" data-row="${snoValue}">
+                        <input type="text" class="sno-input" value="${snoValue}" readonly>
+                    </div>
+                </td>
+                <td><input type="text" class="efile-no-input" value="${rowData.efileNo || ''}" placeholder="EFILE NO"></td>
+                <td><input type="text" class="contractor-input" value="${rowData.contractor || ''}" placeholder="CONTRACTOR"></td>
+                <td><input type="date" class="start-date-input" value="${rowData.startDate || ''}"></td>
+                <td><input type="date" class="end-date-input" value="${rowData.endDate || ''}"></td>
+                <td><input type="text" class="duration-input" value="${rowData.duration || ''}" readonly></td>
+                <td><input type="text" class="handle-by-input" value="${rowData.handleBy || ''}" placeholder="HANDLE BY"></td>
+                <td>
+                    <select class="frequency-select">
+                        <option value="" ${!rowData.frequency ? 'selected' : ''}>Select</option>
+                        <option value="Monthly" ${rowData.frequency === 'Monthly' || rowData.frequency === 'monthly' ? 'selected' : ''}>Monthly</option>
+                        <option value="Quarterly" ${rowData.frequency === 'Quarterly' || rowData.frequency === 'quarterly' ? 'selected' : ''}>Quarterly</option>
+                        <option value="Annual" ${rowData.frequency === 'Annual' || rowData.frequency === 'annual' ? 'selected' : ''}>Annual</option>
+                    </select>
+                </td>
+                <td><div class="months-status">${rowData.months || ''}</div></td>
+                <td><div class="pending-status">${rowData.pendingStatus || ''}</div></td>
+                <td><input type="text" class="remarks-input" value="${rowData.remarks || ''}" placeholder="REMARKS"></td>
+                <td>
+                    <div class="action-cell">
+                        <button class="delete-btn" onclick="deleteRow(this)">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            `;
+            
+            tbody.appendChild(row);
+            
+            // Setup event listeners for the new row
+            setupRowEventListeners(row);
+            
+            // Calculate duration if dates are present
+            if (rowData.startDate && rowData.endDate) {
+                calculateDurationForDates(
+                    row.querySelector('.start-date-input'), 
+                    row.querySelector('.end-date-input'), 
+                    row.querySelector('.duration-input')
+                );
+            }
+        });
+        
+        updateTotalCount();
+        console.log('Synced data loaded successfully');
+    } catch (error) {
+        console.error('Error loading synced data:', error);
+    }
+}
+
+// Listen for cross-page data sync events
+window.addEventListener('storage', function(e) {
+    if (e.key === 'crossPageDataSync' && e.newValue) {
+        try {
+            const syncData = JSON.parse(e.newValue);
+            console.log('Received cross-page data sync');
+            // Apply synced data if current page is empty
+            if (document.getElementById('tableBody').children.length === 0) {
+                loadSyncedData(syncData);
+            }
+        } catch (error) {
+            console.error('Error parsing cross-page sync data:', error);
+        }
+    }
+});
 
 // Initialize the page
 document.addEventListener('DOMContentLoaded', function() {
     setupEventListeners();
-    loadDataFromStorage(); // Load saved data
+    loadData(); // Load saved data
     updateTotalCount();
     setupLiveUpdates(); // Setup live data updates
     initializeBulkOperations(); // Initialize bulk operations
@@ -488,7 +690,16 @@ function processImportedData(jsonData) {
         const contractor = row["Company"] || row["Contractor"] || '';
         const handleBy = row["Handle By"] || '';
         let frequency = row["Frequency"] || row["frequency"] || '';
-        const months = row["Months"] || row["months"] || '';
+        
+        // Excel doesn't have months column - leave empty for now
+        // The select months dropdown is for filtering/calculation only
+        const months = ''; // Empty initially, will be filled by dropdown selection
+        
+        // Get pending status from Excel - check multiple possible column names
+        const pendingStatus = row["Pending Status"] || row["Pending"] || row["Status"] || row["paid"] || row["Paid"] || '';
+        
+        // Get remarks from Excel
+        const remarks = row["Remarks"] || row["remarks"] || '';
         
         // Clean up frequency value
         if (frequency) {
@@ -496,23 +707,21 @@ function processImportedData(jsonData) {
             console.log('Original frequency:', row["Frequency"], 'Cleaned frequency:', frequency);
         }
         
-        // Map frequency variations to standard values
+        // Map frequency variations to standard values (using new frequency options)
         const frequencyMap = {
-            'yearly': 'yearly',
-            'year': 'yearly',
-            'annually': 'yearly',
-            'half-yearly': 'half-yearly',
-            'half yearly': 'half-yearly',
-            'semi-annually': 'half-yearly',
-            'quarterly': 'quarterly',
-            'quarter': 'quarterly',
-            'monthly': 'monthly',
-            'month': 'monthly'
+            'monthly': 'Monthly',
+            'month': 'Monthly',
+            'quarterly': 'Quarterly', 
+            'quarter': 'Quarterly',
+            'annual': 'Annual',
+            'annually': 'Annual',
+            'yearly': 'Annual',
+            'year': 'Annual'
         };
         
         frequency = frequencyMap[frequency] || frequency;
         
-        console.log('Final values:', { sno, efileNo, contractor, startDate, endDate, duration, handleBy, frequency, months });
+        console.log('Final values:', { sno, efileNo, contractor, startDate, endDate, duration, handleBy, frequency, months, pendingStatus, remarks });
         
         // Format date as YYYY-MM-DD for HTML date inputs
         const formatYYYYMMDD = (date) => {
@@ -553,35 +762,23 @@ function processImportedData(jsonData) {
             <td>
                 <select class="frequency-select">
                     <option value="">Select Frequency</option>
-                    <option value="yearly" ${frequency === 'yearly' ? 'selected' : ''}>Yearly</option>
-                    <option value="half-yearly" ${frequency === 'half-yearly' ? 'selected' : ''}>Half-Yearly</option>
-                    <option value="quarterly" ${frequency === 'quarterly' ? 'selected' : ''}>Quarterly</option>
-                    <option value="monthly" ${frequency === 'monthly' ? 'selected' : ''}>Monthly</option>
+                    <option value="Monthly" ${frequency === 'Monthly' ? 'selected' : ''}>Monthly</option>
+                    <option value="Quarterly" ${frequency === 'Quarterly' ? 'selected' : ''}>Quarterly</option>
+                    <option value="Annual" ${frequency === 'Annual' ? 'selected' : ''}>Annual</option>
                 </select>
             </td>
             <td>
-                <select class="months-select">
-                    <option value="">Select Month</option>
-                    <option value="January" ${months === 'January' ? 'selected' : ''}>January</option>
-                    <option value="February" ${months === 'February' ? 'selected' : ''}>February</option>
-                    <option value="March" ${months === 'March' ? 'selected' : ''}>March</option>
-                    <option value="April" ${months === 'April' ? 'selected' : ''}>April</option>
-                    <option value="May" ${months === 'May' ? 'selected' : ''}>May</option>
-                    <option value="June" ${months === 'June' ? 'selected' : ''}>June</option>
-                    <option value="July" ${months === 'July' ? 'selected' : ''}>July</option>
-                    <option value="August" ${months === 'August' ? 'selected' : ''}>August</option>
-                    <option value="September" ${months === 'September' ? 'selected' : ''}>September</option>
-                    <option value="October" ${months === 'October' ? 'selected' : ''}>October</option>
-                    <option value="November" ${months === 'November' ? 'selected' : ''}>November</option>
-                    <option value="December" ${months === 'December' ? 'selected' : ''}>December</option>
-                </select>
+                <div class="months-status">${months || ''}</div>
             </td>
             <td>
-                <input type="text" class="remarks-input" placeholder="Enter Remarks" value="${row['Remarks'] || row['remarks'] || ''}">
+                <div class="pending-status">${pendingStatus || ''}</div>
             </td>
             <td>
-                <div class="action-buttons">
-                    <button class="action-btn delete" onclick="deleteRow(this)">
+                <input type="text" class="remarks-input" placeholder="Enter Remarks" value="${remarks}">
+            </td>
+            <td>
+                <div class="action-cell">
+                    <button class="delete-btn" onclick="deleteRow(this)">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
@@ -589,6 +786,20 @@ function processImportedData(jsonData) {
         `;
         
         tbody.appendChild(tableRow);
+        
+        // Store the original Excel pending status in dataset
+        tableRow.dataset.excelPendingStatus = pendingStatus;
+        
+        // Setup event listeners for the imported row
+        setupRowEventListeners(tableRow);
+        
+        // Calculate duration for the imported row
+        calculateDurationForDates(
+            tableRow.querySelector('.start-date-input'),
+            tableRow.querySelector('.end-date-input'),
+            tableRow.querySelector('.duration-input')
+        );
+        
         validRows++;
         
         // Debug: Check what was actually rendered
@@ -971,10 +1182,9 @@ function addRow() {
         <td>
             <select class="frequency-select">
                 <option value="">Select Frequency</option>
-                <option value="yearly">Yearly</option>
-                <option value="half-yearly">Half-Yearly</option>
-                <option value="quarterly">Quarterly</option>
-                <option value="monthly">Monthly</option>
+                <option value="Monthly">Monthly</option>
+                <option value="Quarterly">Quarterly</option>
+                <option value="Annual">Annual</option>
             </select>
         </td>
         <td>
@@ -993,6 +1203,9 @@ function addRow() {
                 <option value="November">November</option>
                 <option value="December">December</option>
             </select>
+        </td>
+        <td>
+            <div class="pending-status"></div>
         </td>
         <td>
             <input type="text" class="remarks-input" placeholder="Enter Remarks">
@@ -1075,7 +1288,7 @@ async function saveData() {
     }
 }
 
-// Save data to sessionStorage (temporary storage)
+// Save data to API (with localStorage fallback)
 async function saveDataToStorage() {
     const tbody = document.getElementById('tableBody');
     const rows = tbody.querySelectorAll('tr');
@@ -1109,13 +1322,28 @@ async function saveDataToStorage() {
         });
     }
 
-    // Save to sessionStorage only (temporary storage)
+    // Try to save to API, fallback to localStorage
     try {
-        sessionStorage.setItem(BILL_TRACKER_DATA_KEY, JSON.stringify(dataToSave));
-        console.log('Data saved to sessionStorage (temporary):', dataToSave.length, 'records');
+        if (typeof billTrackerAPI !== 'undefined') {
+            await billTrackerAPI.save(dataToSave);
+            console.log('Data saved to API successfully');
+        } else {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+            console.log('Data saved to localStorage (API not available)');
+        }
     } catch (error) {
-        console.error('Failed to save to sessionStorage:', error);
+        console.error('Failed to save to API, using localStorage:', error);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
     }
+    
+    // Mark session as having saved data
+    sessionStorage.setItem('dashboardSessionData', 'true');
+    
+    // Sync data across pages using localStorage
+    localStorage.setItem('crossPageDataSync', JSON.stringify(dataToSave));
+    
+    // Trigger storage event for other pages
+    window.dispatchEvent(new CustomEvent('dataSync', { detail: dataToSave }));
 }
 
 // Refresh page
@@ -1354,7 +1582,7 @@ function updateAllMonthsStatusWithYear(selectedMonth, selectedYear) {
         const monthsStatusDiv = row.querySelector('.months-status');
         const pendingStatusDiv = row.querySelector('.pending-status');
         
-        // Update months status display with year
+        // UPDATE months status with selected month and year
         if (monthsStatusDiv) {
             let displayText = '';
             let color = '#ffa502'; // Default orange for pending
@@ -1365,24 +1593,33 @@ function updateAllMonthsStatusWithYear(selectedMonth, selectedYear) {
             } else if (selectedMonth) {
                 displayText = selectedMonth;
                 color = '#2ed573'; // Green for selected
-            } else if (selectedYear) {
-                displayText = selectedYear;
-                color = '#2ed573'; // Green for selected
             } else {
-                displayText = 'Pending';
-                color = '#ffa502'; // Orange for pending
+                displayText = '-';
+                color = '#ffa502'; // Orange for no selection
             }
             
             monthsStatusDiv.textContent = displayText;
             monthsStatusDiv.style.color = color;
         }
         
-        // Update pending status based on selected month and year
+        // UPDATE pending status based on Excel data for selected month/year
         if (pendingStatusDiv) {
-            const pendingStatus = calculatePendingStatusWithYear(row, selectedMonth, selectedYear);
-            pendingStatusDiv.textContent = pendingStatus.text;
-            pendingStatusDiv.style.color = pendingStatus.color;
+            // Get the original Excel pending status
+            const excelPendingStatus = row.dataset.excelPendingStatus || '';
+            
+            if (excelPendingStatus && excelPendingStatus.trim() !== '') {
+                // Show Excel data with proper color
+                pendingStatusDiv.textContent = excelPendingStatus;
+                updatePendingStatusColor(pendingStatusDiv, excelPendingStatus);
+            } else {
+                // No Excel data - show null/dash
+                pendingStatusDiv.textContent = '-';
+                pendingStatusDiv.style.color = '#ffa502'; // Orange for null
+            }
         }
+        
+        // FILTER ROWS based on selected month/year
+        filterRowByMonthYear(row, selectedMonth, selectedYear);
     });
 }
 
@@ -1444,7 +1681,8 @@ function updateAllMonthsStatus(selectedMonth) {
         const monthsStatusDiv = row.querySelector('.months-status');
         const pendingStatusDiv = row.querySelector('.pending-status');
         
-        // Update months status display
+        // UPDATE months status with selected month
+        // This is for filtering/calculation purposes
         if (monthsStatusDiv) {
             let displayText = '';
             let color = '#ffa502'; // Default orange for pending
@@ -1453,19 +1691,40 @@ function updateAllMonthsStatus(selectedMonth) {
                 displayText = selectedMonth;
                 color = '#2ed573'; // Green for selected
             } else {
-                displayText = 'Pending';
-                color = '#ffa502'; // Orange for pending
+                displayText = '-';
+                color = '#ffa502'; // Orange for no selection
             }
             
             monthsStatusDiv.textContent = displayText;
             monthsStatusDiv.style.color = color;
         }
         
-        // Update pending status based on selected month only
+        // UPDATE pending status based on selected month only
+        // This is the calculation logic
         if (pendingStatusDiv) {
-            const pendingStatus = calculatePendingStatus(row, selectedMonth);
-            pendingStatusDiv.textContent = pendingStatus.text;
-            pendingStatusDiv.style.color = pendingStatus.color;
+            const currentStatus = pendingStatusDiv.textContent.trim();
+            
+            // If there's existing Excel data, preserve it
+            if (currentStatus && 
+                currentStatus !== '-' && 
+                currentStatus !== '' &&
+                (currentStatus.toLowerCase().includes('paid') || 
+                 currentStatus.toLowerCase().includes('pending') ||
+                 currentStatus.toLowerCase().includes('not paid'))) {
+                // Just update color for existing Excel status
+                updatePendingStatusColor(pendingStatusDiv, currentStatus);
+            } else {
+                // Calculate based on selected month
+                if (selectedMonth) {
+                    const pendingStatus = calculatePendingStatus(row, selectedMonth);
+                    pendingStatusDiv.textContent = pendingStatus.text;
+                    pendingStatusDiv.style.color = pendingStatus.color;
+                } else {
+                    // No selection - clear or show default
+                    pendingStatusDiv.textContent = '-';
+                    pendingStatusDiv.style.color = '#ffa502';
+                }
+            }
         }
     });
 }
@@ -1509,6 +1768,65 @@ function calculatePendingStatus(row, selectedMonth) {
     } else {
         return { text: 'Not Paid', color: '#ff4757' };
     }
+}
+
+// Filter row based on selected month and year
+function filterRowByMonthYear(row, selectedMonth, selectedYear) {
+    // Show all rows if no selection
+    if (!selectedMonth && !selectedYear) {
+        row.style.display = '';
+        return;
+    }
+    
+    // For now, show all rows - this can be enhanced later
+    // The main purpose is to update the display based on Excel data
+    row.style.display = '';
+}
+
+// Update pending status color based on status text
+function updatePendingStatusColor(pendingStatusDiv, statusText) {
+    const statusLower = statusText.toLowerCase().trim();
+    
+    if (statusLower.includes('paid') || statusLower === 'paid') {
+        pendingStatusDiv.style.color = '#2ed573'; // Green
+    } else if (statusLower.includes('not paid') || statusLower === 'not paid' || statusLower.includes('unpaid')) {
+        pendingStatusDiv.style.color = '#ff4757'; // Red
+    } else if (statusLower.includes('pending') || statusLower === 'pending') {
+        pendingStatusDiv.style.color = '#ffa502'; // Orange
+    } else {
+        pendingStatusDiv.style.color = '#ffffff'; // Default white for other values
+    }
+}
+
+// Force recalculate all pending statuses (override Excel data)
+function forceRecalculateAllPendingStatuses() {
+    const tbody = document.getElementById('tableBody');
+    if (!tbody) return;
+    
+    const globalMonthsSelect = document.getElementById('globalMonthsSelect');
+    const filterYearSelect = document.getElementById('filterYearSelect');
+    const selectedMonth = globalMonthsSelect ? globalMonthsSelect.value : '';
+    const selectedYear = filterYearSelect ? filterYearSelect.value : '';
+    
+    const rows = tbody.querySelectorAll('tr');
+    rows.forEach(row => {
+        const pendingStatusDiv = row.querySelector('.pending-status');
+        
+        if (pendingStatusDiv) {
+            let pendingStatus;
+            
+            if (selectedYear) {
+                pendingStatus = calculatePendingStatusWithYear(row, selectedMonth, selectedYear);
+            } else {
+                pendingStatus = calculatePendingStatus(row, selectedMonth);
+            }
+            
+            pendingStatusDiv.textContent = pendingStatus.text;
+            pendingStatusDiv.style.color = pendingStatus.color;
+        }
+    });
+    
+    console.log('Force recalculated all pending statuses');
 }
 
 // Update total count
@@ -1747,54 +2065,106 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
-// Data Persistence Functions
-function saveDataToStorage() {
-    try {
-        const tableData = getTableData();
-        
-        // Validate data before saving
-        if (tableData.length === 0) {
-            console.warn('No data to save');
-            return;
-        }
-        
-        // Simple direct save like contractorListData
-        localStorage.setItem(BILL_TRACKER_DATA_KEY, JSON.stringify(tableData));
-        localStorage.setItem(BILL_TRACKER_HISTORY_KEY, JSON.stringify(history));
-        localStorage.setItem(BILL_TRACKER_HISTORY_INDEX_KEY, historyIndex.toString());
-        
-        // Also save to analytics data
-        saveToAnalyticsData(tableData);
-        
-        console.log('Bill tracker data saved to localStorage:', tableData.length, 'records');
-        
-        // Trigger analytics update if on analytics page
-        if (window.location.pathname.includes('analytics.html')) {
-            setTimeout(() => {
-                if (typeof loadAnalyticsData === 'function') {
-                    loadAnalyticsData();
-                }
-            }, 200);
-        }
-    } catch (error) {
-        console.error('Error saving data to localStorage:', error);
-    }
-}
+// Load data from API (with localStorage fallback)
+async function loadData() {
+    let data = [];
 
-function loadDataFromStorage() {
+    // Try to load from API first
     try {
-        // Load from sessionStorage only (temporary storage)
-        const savedData = sessionStorage.getItem(BILL_TRACKER_DATA_KEY);
-        
-        if (savedData) {
-            const tableData = JSON.parse(savedData);
-            restoreTableFromData(tableData);
-            console.log('Bill tracker data loaded from sessionStorage (temporary):', tableData.length, 'records');
+        if (typeof billTrackerAPI !== 'undefined') {
+            data = await billTrackerAPI.load();
+            console.log('Data loaded from API successfully');
         } else {
-            console.log('No temporary data found in sessionStorage');
+            // Fallback to localStorage if API is not available
+            const savedData = localStorage.getItem(STORAGE_KEY);
+            if (savedData) {
+                data = JSON.parse(savedData);
+                console.log('Data loaded from localStorage (API not available)');
+            }
         }
     } catch (error) {
-        console.error('Error loading data from sessionStorage:', error);
+        console.error('Failed to load from API, trying localStorage:', error);
+        // Fallback to localStorage
+        const savedData = localStorage.getItem(STORAGE_KEY);
+        if (savedData) {
+            try {
+                data = JSON.parse(savedData);
+                console.log('Data loaded from localStorage fallback');
+            } catch (parseError) {
+                console.error('Error parsing localStorage data:', parseError);
+            }
+        }
+    }
+
+    if (data && data.length > 0) {
+        try {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+
+            data.forEach((rowData, index) => {
+                const row = document.createElement('tr');
+                const snoValue = rowData.sno || (index + 1);
+                rowCounter = Math.max(rowCounter, parseInt(snoValue) || index + 1);
+                
+                // Create row HTML with loaded data
+                row.innerHTML = `
+                    <td>
+                        <div class="sno-cell">
+                            <input type="checkbox" class="sno-checkbox" data-row="${snoValue}">
+                            <input type="text" class="sno-input" value="${snoValue}" readonly>
+                        </div>
+                    </td>
+                    <td><input type="text" class="efile-no-input" value="${rowData.efileNo || ''}" placeholder="EFILE NO"></td>
+                    <td><input type="text" class="contractor-input" value="${rowData.contractor || ''}" placeholder="CONTRACTOR"></td>
+                    <td><input type="date" class="start-date-input" value="${rowData.startDate || ''}"></td>
+                    <td><input type="date" class="end-date-input" value="${rowData.endDate || ''}"></td>
+                    <td><input type="text" class="duration-input" value="${rowData.duration || ''}" readonly></td>
+                    <td><input type="text" class="handle-by-input" value="${rowData.handleBy || ''}" placeholder="HANDLE BY"></td>
+                    <td>
+                        <select class="frequency-select">
+                            <option value="" ${!rowData.frequency ? 'selected' : ''}>Select</option>
+                            <option value="Monthly" ${rowData.frequency === 'Monthly' || rowData.frequency === 'monthly' ? 'selected' : ''}>Monthly</option>
+                            <option value="Quarterly" ${rowData.frequency === 'Quarterly' || rowData.frequency === 'quarterly' ? 'selected' : ''}>Quarterly</option>
+                            <option value="Annual" ${rowData.frequency === 'Annual' || rowData.frequency === 'annual' ? 'selected' : ''}>Annual</option>
+                        </select>
+                    </td>
+                    <td><div class="months-status">${rowData.months || ''}</div></td>
+                    <td><div class="pending-status">${rowData.pendingStatus || ''}</div></td>
+                    <td><input type="text" class="remarks-input" value="${rowData.remarks || ''}" placeholder="REMARKS"></td>
+                    <td>
+                        <div class="action-cell">
+                            <button class="delete-btn" onclick="deleteRow(this)">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                
+                tbody.appendChild(row);
+                
+                // Setup event listeners for the new row
+                setupRowEventListeners(row);
+                
+                // Calculate duration if dates are present
+                if (rowData.startDate && rowData.endDate) {
+                    calculateDurationForDates(
+                        row.querySelector('.start-date-input'), 
+                        row.querySelector('.end-date-input'), 
+                        row.querySelector('.duration-input')
+                    );
+                }
+            });
+            
+            updateTotalCount();
+            console.log('Data loaded successfully');
+            
+            // Trigger duration color updates after data is loaded
+            setTimeout(() => {
+                updateAllDurations();
+            }, 100);
+        } catch (error) {
+            console.error('Error loading data:', error);
+        }
     }
 }
 
@@ -2322,7 +2692,9 @@ function getColumnIndices(columnNames) {
         'handleBy': 6,
         'frequency': 7,
         'months': 8,
-        'remarks': 9
+        'pendingStatus': 9,
+        'remarks': 10,
+        'action': 11
     };
     
     return columnNames.map(name => columnMap[name]).filter(index => index !== undefined);
@@ -2380,8 +2752,9 @@ function updateTableHeaders(selectedColumns) {
         'handleBy': 6,
         'frequency': 7,
         'months': 8,
-        'remarks': 9,
-        'action': 10
+        'pendingStatus': 9,
+        'remarks': 10,
+        'action': 11
     };
     
     // If no columns selected, show all headers
@@ -2461,3 +2834,25 @@ function updateFilterStatus(isFiltered) {
         }
     }
 }
+
+// Auto-save on input change (optional - saves to localStorage)
+document.addEventListener('input', function (e) {
+    if (e.target.matches('.sno-input, .efile-no-input, .contractor-input, .start-date-input, .end-date-input, .duration-input, .handle-by-input, .frequency-select, .remarks-input')) {
+        // Debounce auto-save
+        clearTimeout(window.autoSaveTimeout);
+        window.autoSaveTimeout = setTimeout(() => {
+            saveDataToStorage();
+        }, 1000);
+    }
+});
+
+// Auto-save on file change
+document.addEventListener('change', function (e) {
+    if (e.target.matches('.attachment-input')) {
+        // Debounce auto-save
+        clearTimeout(window.autoSaveTimeout);
+        window.autoSaveTimeout = setTimeout(() => {
+            saveDataToStorage();
+        }, 1000);
+    }
+});

@@ -1012,10 +1012,20 @@ def get_bill_tracker():
                 record['created_at'] = record['created_at'].isoformat()
             if record.get('updated_at'):
                 record['updated_at'] = record['updated_at'].isoformat()
-            date_fields = ['approved_date', 'bill_date', 'bill_due_date', 'bill_paid_date']
+            date_fields = ['start_date', 'end_date']
             for field in date_fields:
                 if record.get(field):
                     record[field] = str(record[field])
+            
+            # Map database fields to frontend field names
+            record['efileNo'] = record.pop('efile', '')
+            record['startDate'] = record.pop('start_date', '')
+            record['endDate'] = record.pop('end_date', '')
+            record['handleBy'] = record.pop('handle_by', '')
+            record['pendingStatus'] = record.pop('pending_status', '')
+            record['fileBase64'] = record.pop('file_base64', '')
+            record['fileType'] = record.pop('file_type', '')
+            # Note: frequency, months, and remarks are already in correct format
         
         return jsonify(records), 200
     except Error as e:
@@ -1042,25 +1052,26 @@ def save_bill_tracker():
         # Insert new records
         insert_query = """
             INSERT INTO bill_tracker 
-            (sno, efile, contractor, approved_date, approved_amount, bill_frequency, 
-             bill_date, bill_due_date, bill_paid_date, paid_amount, 
+            (sno, efile, contractor, start_date, end_date, duration, 
+             handle_by, frequency, months, pending_status, remarks,
              file_name, file_base64, file_type)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
         
         records_to_insert = []
         for record in data['records']:
             records_to_insert.append((
                 record.get('sno', ''),
-                record.get('efile', ''),
+                record.get('efileNo', ''),  # Frontend uses efileNo
                 record.get('contractor', ''),
-                record.get('approvedDate') or None,
-                record.get('approvedAmount', ''),
-                record.get('billFrequency', ''),
-                record.get('billDate') or None,
-                record.get('billDueDate') or None,
-                record.get('billPaidDate') or None,
-                record.get('paidAmount', ''),
+                record.get('startDate') or None,
+                record.get('endDate') or None,
+                record.get('duration', ''),
+                record.get('handleBy', ''),
+                record.get('frequency', ''),
+                record.get('months', ''),
+                record.get('pendingStatus', ''),
+                record.get('remarks', ''),
                 record.get('fileName', ''),
                 record.get('fileBase64', ''),
                 record.get('fileType', '')

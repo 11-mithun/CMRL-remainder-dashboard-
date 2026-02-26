@@ -208,8 +208,16 @@
                                         <label for="filter-months">MONTHS</label>
                                     </div>
                                     <div class="filter-item">
+                                        <input type="checkbox" class="filter-checkbox" id="filter-pendingStatus" data-column="pendingStatus">
+                                        <label for="filter-pendingStatus">PENDING STATUS</label>
+                                    </div>
+                                    <div class="filter-item">
                                         <input type="checkbox" class="filter-checkbox" id="filter-remarks" data-column="remarks">
                                         <label for="filter-remarks">REMARKS</label>
+                                    </div>
+                                    <div class="filter-item">
+                                        <input type="checkbox" class="filter-checkbox" id="filter-action" data-column="action">
+                                        <label for="filter-action">ACTION</label>
                                     </div>
                                 </div>
                                 
@@ -270,6 +278,7 @@
                                     </th>
                                     <th>PENDING STATUS</th>
                                     <th>REMARKS</th>
+                                    <th>ACTION</th>
                                 </tr>
                             </thead>
                             <tbody id="tableBody">
