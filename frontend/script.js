@@ -1338,9 +1338,6 @@ async function saveDataToStorage() {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
     }
     
-    // Mark session as having saved data
-    sessionStorage.setItem('dashboardSessionData', 'true');
-    
     // Sync data across pages using localStorage
     localStorage.setItem('crossPageDataSync', JSON.stringify(dataToSave));
     
@@ -1439,13 +1436,6 @@ function setupRowEventListeners(row) {
 // Load data from API (with localStorage fallback)
 async function loadData() {
     let data = [];
-
-    // Only load data if it was explicitly saved in this session
-    const sessionData = sessionStorage.getItem('dashboardSessionData');
-    if (!sessionData) {
-        console.log('No session data found - starting fresh');
-        return;
-    }
 
     // Try to load from API first
     try {
