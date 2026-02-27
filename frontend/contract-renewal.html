@@ -6,7 +6,46 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Contract Renewal - CMRL/IT Dashboard</title>
     <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Using local Font Awesome to avoid tracking prevention issues -->
+    <style>
+        /* Font Awesome Icons - Local Copy */
+        .fa, .fas, .far, .fab, .fal {
+            display: inline-block;
+            font-style: normal;
+            font-variant: normal;
+            text-rendering: auto;
+            line-height: 1;
+        }
+        
+        .fa-bars:before { content: "☰"; }
+        .fa-times:before { content: "✕"; }
+        .fa-user:before { content: "👤"; }
+        .fa-sign-out-alt:before { content: "🚪"; }
+        .fa-search:before { content: "🔍"; }
+        .fa-bell:before { content: "🔔"; }
+        .fa-brain:before { content: "🧠"; }
+        .fa-sync-alt:before { content: "🔄"; }
+        .fa-eye:before { content: "👁"; }
+        .fa-clock:before { content: "⏰"; }
+        .fa-calendar-alt:before { content: "📅"; }
+        .fa-dollar-sign:before { content: "💵"; }
+        .fa-exclamation-triangle:before { content: "⚠️"; }
+        .fa-check-circle:before { content: "✅"; }
+        .fa-spinner:before { content: "⏳"; }
+        .fa-filter:before { content: "🔽"; }
+        .fa-download:before { content: "⬇️"; }
+        .fa-print:before { content: "🖨️"; }
+        .fa-chevron-down:before { content: "▼"; }
+        .fa-globe:before { content: "🌐"; }
+        .fa-question-circle:before { content: "❓"; }
+        .fa-lock:before { content: "🔒"; }
+        .fa-credit-card:before { content: "💳"; }
+        .fa-university:before { content: "🎓"; }
+        .fa-file-invoice-dollar:before { content: "🧾"; }
+        .fa-shield-alt:before { content: "🛡️"; }
+        .fa-chart-line:before { content: "📈"; }
+        .fa-list:before { content: "📋"; }
+    </style>
     <link rel="icon" type="image/x-icon" href="favicon.ico">
 </head>
 
@@ -58,22 +97,7 @@
                 </a>
             </nav>
 
-            <div class="sidebar-footer">
-                <div class="user-profile">
-                    <div class="user-avatar">
-                        <i class="fas fa-user"></i>
-                    </div>
-                    <div class="user-info">
-                        <div class="user-name" id="userName">Loading...</div>
-                        <div class="user-role" id="userRole">Loading...</div>
-                    </div>
-                </div>
-                <button class="logout-btn" id="sidebarLogoutBtn">
-                    <i class="fas fa-sign-out-alt"></i>
-                    <span>Logout</span>
-                </button>
-            </div>
-        </aside>
+            </aside>
 
         <!-- Main Content -->
         <main class="main-content">
@@ -432,27 +456,6 @@
     <script>
         // Fix logout functionality for contract-renewal page
         document.addEventListener('DOMContentLoaded', function() {
-            // Handle sidebar logout button
-            const sidebarLogoutBtn = document.getElementById('sidebarLogoutBtn');
-            if (sidebarLogoutBtn) {
-                sidebarLogoutBtn.addEventListener('click', async function(e) {
-                    e.preventDefault();
-                    try {
-                        const response = await fetch('/api/logout', {
-                            method: 'POST',
-                            credentials: 'include'
-                        });
-                        
-                        if (response.ok) {
-                            localStorage.removeItem('user');
-                            window.location.href = '/login.html';
-                        }
-                    } catch (error) {
-                        console.error('Logout error:', error);
-                    }
-                });
-            }
-            
             // Handle profile dropdown logout button
             const profileLogoutBtn = document.getElementById('profileLogoutBtn');
             if (profileLogoutBtn) {

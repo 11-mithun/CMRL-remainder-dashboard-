@@ -8,12 +8,45 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeContractRenewal();
     setupMobileMenu(); // Add mobile menu functionality
     setupSidebarToggle(); // Add sidebar toggle functionality
+    initializeUserProfile(); // Initialize user profile
 });
 
 function initializeContractRenewal() {
     loadExpiringContracts();
     setupEventListeners();
     updateStats();
+}
+
+// Initialize user profile
+function initializeUserProfile() {
+    // Get user data from localStorage or Auth
+    const user = Auth ? Auth.getUser() : JSON.parse(localStorage.getItem('user'));
+    
+    if (user) {
+        // Update profile avatars with user's initial
+        const userAvatar = document.getElementById('userAvatar');
+        const userAvatarLarge = document.getElementById('userAvatarLarge');
+        
+        if (userAvatar) {
+            userAvatar.textContent = user.name ? user.name.charAt(0).toUpperCase() : 'U';
+        }
+        
+        if (userAvatarLarge) {
+            userAvatarLarge.textContent = user.name ? user.name.charAt(0).toUpperCase() : 'U';
+        }
+        
+        // Update user name and role
+        const userNameDropdown = document.getElementById('userNameDropdown');
+        const userRoleDropdown = document.getElementById('userRoleDropdown');
+        
+        if (userNameDropdown) {
+            userNameDropdown.textContent = user.name || 'User';
+        }
+        
+        if (userRoleDropdown) {
+            userRoleDropdown.textContent = user.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'User';
+        }
+    }
 }
 
 // Setup sidebar toggle functionality (from bill-tracker)

@@ -1467,11 +1467,13 @@ async function loadData() {
     if (data && data.length > 0) {
         try {
             const tbody = document.getElementById('tableBody');
-            tbody.innerHTML = '';
+            // Only proceed if tableBody exists (not on contract-renewal page)
+            if (tbody) {
+                tbody.innerHTML = '';
 
-            data.forEach((rowData, index) => {
-                const row = document.createElement('tr');
-                // Map database field names to frontend field names
+                data.forEach((rowData, index) => {
+                    const row = document.createElement('tr');
+                    // Map database field names to frontend field names
                 const snoValue = rowData.sno || rowData.SNO || (index + 1);
                 rowCounter = Math.max(rowCounter, parseInt(snoValue) || index + 1);
 
@@ -1633,6 +1635,7 @@ async function loadData() {
             setTimeout(() => {
                 checkAllDurations();
             }, 300);
+            }
         } catch (error) {
             console.error('Error loading data:', error);
         }
@@ -1652,8 +1655,14 @@ function refreshPage() {
 // Print table
 function printTable() {
     // Create a new window with formatted table
-    const printWindow = window.open('', '_blank');
     const tbody = document.getElementById('tableBody');
+    
+    // Only proceed if tableBody exists (not on contract-renewal page)
+    if (!tbody) {
+        alert('No table data to print!');
+        return;
+    }
+    
     const rows = tbody.querySelectorAll('tr');
 
     if (rows.length === 0) {
@@ -1661,6 +1670,7 @@ function printTable() {
         return;
     }
 
+    const printWindow = window.open('', '_blank');
     let tableHTML = `
         <!DOCTYPE html>
         <html>
@@ -2235,6 +2245,7 @@ function testFiltering() {
 // Make test function available globally for debugging
 window.testFiltering = testFiltering;
 
+// Update filter status UI
 function updateFilterStatus(isFiltered) {
     const filterBtn = document.getElementById('filterDropdownBtn');
     const totalBadge = document.getElementById('totalBadge');
@@ -2244,9 +2255,6 @@ function updateFilterStatus(isFiltered) {
         if (isFiltered) {
             filterBtn.classList.add('active');
         } else {
-        showNotification(`Filters applied: ${uncheckedRows} rows unchecked, ${selectedColumns} columns, ${visibleRows} rows visible`, 'success');
-    } else {
-        if (filterBtn) {
             filterBtn.classList.remove('active');
         }
     }
