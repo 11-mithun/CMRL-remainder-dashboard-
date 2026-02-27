@@ -1249,5 +1249,431 @@ def health_check():
     except Exception as e:
         return jsonify({'status': 'unhealthy', 'error': str(e)}), 500
 
+# ============= CONTRACT RENEWAL API ENDPOINTS =============
+
+@app.route('/api/contract-renewal/expiring', methods=['GET'])
+@login_required
+def get_expiring_contracts():
+    """Get contracts expiring in next 30 days from both contractor_list and bill_tracker"""
+    try:
+        connection = get_db_connection()
+        if not connection:
+            return jsonify({'error': 'Database connection failed'}), 500
+            
+        cursor = connection.cursor(dictionary=True)
+        
+        # Get contracts from contractor_list table expiring in 30 days
+        contractor_query = """
+        SELECT id, contractor, efile, end_date, value, description,
+               DATEDIFF(end_date, CURDATE()) as days_until_expiry, 'contractor_list' as source
+        FROM contractor_list 
+        WHERE end_date <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+        AND end_date >= CURDATE()
+        ORDER BY end_date ASC
+        """
+        
+        cursor.execute(contractor_query)
+        contractor_contracts = cursor.fetchall()
+        
+        # Try to get contracts from bill_tracker table (with error handling)
+        bill_tracker_contracts = []
+        try:
+            # First check if bill_tracker table exists
+            cursor.execute("SHOW TABLES LIKE 'bill_tracker'")
+            table_exists = cursor.fetchone()
+            
+            if table_exists:
+                # Check if value column exists in bill_tracker
+                cursor.execute("SHOW COLUMNS FROM bill_tracker LIKE 'value'")
+                value_column_exists = cursor.fetchone()
+                
+                if value_column_exists:
+                    bill_tracker_query = """
+                    SELECT id, contractor, efile as efile, end_date, value, description,
+                           DATEDIFF(end_date, CURDATE()) as days_until_expiry, 'bill_tracker' as source
+                    FROM bill_tracker 
+                    WHERE end_date <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+                    AND end_date >= CURDATE()
+                    ORDER BY end_date ASC
+                    """
+                else:
+                    # Use 0 as default value if column doesn't exist
+                    bill_tracker_query = """
+                    SELECT id, contractor, efile as efile, end_date, 0 as value, remarks as description,
+                           DATEDIFF(end_date, CURDATE()) as days_until_expiry, 'bill_tracker' as source
+                    FROM bill_tracker 
+                    WHERE end_date <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+                    AND end_date >= CURDATE()
+                    ORDER BY end_date ASC
+                    """
+                
+                cursor.execute(bill_tracker_query)
+                bill_tracker_contracts = cursor.fetchall()
+        except Exception as e:
+            print(f"Warning: Could not fetch from bill_tracker table: {e}")
+            # Continue without bill_tracker data
+        
+        # Combine both datasets
+        contracts = contractor_contracts + bill_tracker_contracts
+        
+        # Add urgency classification and ensure proper field names
+        for contract in contracts:
+            if contract['days_until_expiry'] <= 7:
+                contract['urgency'] = 'critical'
+            elif contract['days_until_expiry'] <= 30:
+                contract['urgency'] = 'warning'
+            else:
+                contract['urgency'] = 'normal'
+                
+            # Set contractor_name field for consistency
+            contract['contractor_name'] = contract.get('contractor', 'Unknown Contractor')
+            
+            # Ensure value is not null
+            if contract['value'] is None:
+                contract['value'] = 0
+                
+        cursor.close()
+        connection.close()
+        
+        return jsonify(contracts), 200
+        
+    except Error as e:
+        print(f"Error getting expiring contracts: {e}")
+        return jsonify({'error': str(e)}), 500
+    except Exception as e:
+        print(f"Unexpected error getting expiring contracts: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/contract-renewal/analyze', methods=['POST'])
+@login_required
+def analyze_contract():
+    """AI contract analysis (prototype with local data)"""
+    try:
+        data = request.get_json()
+        contract_id = data.get('contract_id')
+        analysis_type = data.get('analysis_type')
+        
+        if not contract_id or not analysis_type:
+            return jsonify({'error': 'Contract ID and analysis type are required'}), 400
+        
+        connection = get_db_connection()
+        if not connection:
+            return jsonify({'error': 'Database connection failed'}), 500
+            
+        cursor = connection.cursor(dictionary=True)
+        
+        # Try to get contract details from contractor_list first
+        cursor.execute("SELECT * FROM contractor_list WHERE id = %s", (contract_id,))
+        contract = cursor.fetchone()
+        
+        # If not found, try bill_tracker table
+        if not contract:
+            try:
+                cursor.execute("SELECT * FROM bill_tracker WHERE id = %s", (contract_id,))
+                contract = cursor.fetchone()
+                # Map field names for consistency - bill_tracker uses 'efile' not 'efile_no'
+                if contract:
+                    contract['efile'] = contract.get('efile', '')
+                    # Add missing fields that demo data might have
+                    if 'contractor' not in contract:
+                        contract['contractor'] = contract.get('contractor', 'Unknown Contractor')
+                    if 'description' not in contract:
+                        contract['description'] = contract.get('description', 'No description available')
+                    if 'end_date' not in contract:
+                        contract['end_date'] = contract.get('end_date', None)
+                    if 'value' not in contract:
+                        contract['value'] = contract.get('value', 0)
+            except Exception as e:
+                print(f"Warning: Could not fetch from bill_tracker: {e}")
+        
+        # If still not found, create a dummy contract for demo purposes
+        if not contract:
+            print(f"Warning: Contract ID {contract_id} not found, creating demo contract")
+            contract = {
+                'id': contract_id,
+                'contractor': 'Demo Contract',
+                'efile': f'DEMO-{contract_id}',
+                'description': 'Demo contract for testing',
+                'end_date': datetime.now().date() + timedelta(days=15),
+                'value': 50000
+            }
+        
+        # Store analysis request in database
+        try:
+            # Check if ai_analyses table exists first
+            cursor.execute("SHOW TABLES LIKE 'ai_analyses'")
+            table_exists = cursor.fetchone()
+            
+            if table_exists:
+                cursor.execute("""
+                    INSERT INTO ai_analyses (contract_id, analysis_type, ai_response, confidence_score, local_data_used)
+                    VALUES (%s, %s, %s, %s, %s)
+                """, (contract_id, analysis_type, 'Analysis completed', 0.85, True))
+                
+                analysis_id = cursor.lastrowid
+                connection.commit()
+            else:
+                print(f"Warning: ai_analyses table does not exist, skipping storage")
+                analysis_id = None
+        except Exception as e:
+            print(f"Warning: Could not store analysis in ai_analyses table: {e}")
+            # Continue without storing analysis
+            analysis_id = None
+        
+        cursor.close()
+        connection.close()
+        
+        # Return demo analysis results based on type
+        result = get_demo_analysis(analysis_type, contract)
+        
+        return jsonify(result), 200
+        
+    except Error as e:
+        print(f"Error analyzing contract: {e}")
+        return jsonify({'error': str(e)}), 500
+    except Exception as e:
+        print(f"Unexpected error analyzing contract: {e}")
+        return jsonify({'error': str(e)}), 500
+
+def get_demo_analysis(analysis_type, contract):
+    """Generate demo analysis results based on local data"""
+    days_until_expiry = (contract['end_date'] - datetime.now().date()).days if contract['end_date'] else 30
+    
+    if analysis_type == 'risk':
+        return {
+            'risk_level': 'High' if days_until_expiry <= 7 else 'Medium',
+            'factors': [
+                f'Contract expires in {days_until_expiry} days',
+                'No clear renewal terms specified',
+                'Payment terms need clarification'
+            ],
+            'recommendations': [
+                'Initiate renewal process immediately',
+                'Clarify payment terms before renewal',
+                'Consider longer contract term for stability'
+            ]
+        }
+    elif analysis_type == 'compliance':
+        return {
+            'status': 'Mostly Compliant',
+            'issues': [
+                'Missing digital signature clause',
+                'No force majeure clause present'
+            ],
+            'recommendations': [
+                'Add standard compliance clauses',
+                'Include legal review in renewal process'
+            ]
+        }
+    elif analysis_type == 'negotiation':
+        return {
+            'leverage_points': [
+                'Long-term relationship with vendor',
+                'Market rates have decreased 5% since last contract',
+                'Multiple vendors available for similar services'
+            ],
+            'suggested_terms': [
+                'Request 5-10% discount on renewal',
+                'Extend contract term to 24 months',
+                'Include performance-based incentives'
+            ]
+        }
+    elif analysis_type == 'renewal':
+        return {
+            'recommendation': 'Renew with Modifications',
+            'reasoning': 'Vendor provides good service but terms can be improved',
+            'suggested_changes': [
+                'Reduce contract value by 8%',
+                'Add quarterly review meetings',
+                'Include service level agreements'
+            ]
+        }
+    
+    return {}
+
+@app.route('/api/contract-renewal/process-renewal', methods=['POST'])
+@login_required
+def process_renewal():
+    """Process contract renewal or cancellation"""
+    try:
+        data = request.get_json()
+        contract_id = data.get('contract_id')
+        user_action = data.get('user_action')  # 'renew' or 'cancel'
+        new_end_date = data.get('new_end_date')
+        renewal_amount = data.get('renewal_amount')
+        renewal_terms = data.get('renewal_terms', '')
+        
+        if not contract_id or not user_action:
+            return jsonify({'error': 'Contract ID and user action are required'}), 400
+        
+        connection = get_db_connection()
+        if not connection:
+            return jsonify({'error': 'Database connection failed'}), 500
+            
+        cursor = connection.cursor(dictionary=True)
+        
+        # Try to get original contract details from contractor_list first
+        cursor.execute("SELECT * FROM contractor_list WHERE id = %s", (contract_id,))
+        contract = cursor.fetchone()
+        
+        # If not found, try bill_tracker table
+        if not contract:
+            try:
+                cursor.execute("SELECT * FROM bill_tracker WHERE id = %s", (contract_id,))
+                contract = cursor.fetchone()
+                # Map field names for consistency - bill_tracker uses 'efile' not 'efile_no'
+                if contract:
+                    contract['efile'] = contract.get('efile', '')
+            except Exception as e:
+                print(f"Warning: Could not fetch from bill_tracker: {e}")
+        
+        if not contract:
+            cursor.close()
+            connection.close()
+            return jsonify({'error': 'Contract not found'}), 404
+        
+        # Create renewal record
+        try:
+            # Check if contract_renewals table exists
+            cursor.execute("SHOW TABLES LIKE 'contract_renewals'")
+            table_exists = cursor.fetchone()
+            
+            if table_exists:
+                cursor.execute("""
+                    INSERT INTO contract_renewals 
+                    (original_contract_id, contractor_name, old_end_date, new_end_date, renewal_amount, status, user_action)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                """, (
+                    contract_id,
+                    contract.get('contractor', 'Unknown Contractor'),
+                    contract['end_date'],
+                    new_end_date if user_action == 'renew' else None,
+                    renewal_amount if user_action == 'renew' else None,
+                    'pending' if user_action == 'renew' else 'cancelled',
+                    user_action
+                ))
+                
+                renewal_id = cursor.lastrowid
+                connection.commit()
+            else:
+                print(f"Warning: contract_renewals table does not exist, skipping storage")
+                renewal_id = None
+        except Exception as e:
+            print(f"Warning: Could not store renewal: {e}")
+            renewal_id = None
+        
+        cursor.close()
+        connection.close()
+        
+        return jsonify({
+            'message': f'Contract {user_action} processed successfully',
+            'renewal_id': renewal_id,
+            'status': 'pending' if user_action == 'renew' else 'cancelled'
+        }), 200
+        
+    except Error as e:
+        print(f"Error processing renewal: {e}")
+        return jsonify({'error': str(e)}), 500
+    except Exception as e:
+        print(f"Unexpected error processing renewal: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/contract-renewal/process-payment', methods=['POST'])
+@login_required
+def process_payment():
+    """Process payment for contract renewal (prototype)"""
+    try:
+        data = request.get_json()
+        payment_method = data.get('payment_method', 'card')
+        amount = data.get('amount', '0')
+        
+        # This is a prototype - no actual payment processing
+        connection = get_db_connection()
+        if not connection:
+            return jsonify({'error': 'Database connection failed'}), 500
+            
+        cursor = connection.cursor(dictionary=True)
+        
+        try:
+            # Check if payment_transactions table exists
+            cursor.execute("SHOW TABLES LIKE 'payment_transactions'")
+            table_exists = cursor.fetchone()
+            
+            if table_exists:
+                cursor.execute("""
+                    INSERT INTO payment_transactions 
+                    (renewal_id, payment_gateway, transaction_id, amount, currency, status, payment_method)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                """, (
+                    None,  # renewal_id would come from actual payment flow
+                    payment_method,
+                    f"txn_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+                    float(amount) if amount else 0,
+                    'USD',
+                    'prototype',
+                    payment_method
+                ))
+                
+                transaction_id = cursor.lastrowid
+                connection.commit()
+            else:
+                print(f"Warning: payment_transactions table does not exist, skipping storage")
+                transaction_id = None
+        except Exception as e:
+            print(f"Warning: Could not store payment transaction: {e}")
+            transaction_id = None
+        finally:
+            cursor.close()
+            connection.close()
+        
+        return jsonify({
+            'message': 'Payment processed successfully (Demo Mode)',
+            'payment_id': transaction_id,
+            'status': 'prototype',
+            'amount': amount
+        }), 200
+        
+    except Error as e:
+        print(f"Error processing payment: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/contract-renewal/confirm', methods=['POST'])
+@login_required
+def confirm_renewal():
+    """Confirm contract renewal after payment"""
+    try:
+        data = request.get_json()
+        renewal_id = data.get('renewal_id')
+        
+        if not renewal_id:
+            return jsonify({'error': 'Renewal ID is required'}), 400
+        
+        connection = get_db_connection()
+        if not connection:
+            return jsonify({'error': 'Database connection failed'}), 500
+            
+        cursor = connection.cursor()
+        
+        # Update renewal status to confirmed
+        cursor.execute("""
+            UPDATE contract_renewals 
+            SET status = 'confirmed', updated_at = CURRENT_TIMESTAMP
+            WHERE id = %s
+        """, (renewal_id,))
+        
+        connection.commit()
+        cursor.close()
+        connection.close()
+        
+        return jsonify({
+            'message': 'Contract renewal confirmed successfully',
+            'renewal_id': renewal_id,
+            'status': 'confirmed'
+        }), 200
+        
+    except Error as e:
+        print(f"Error confirming renewal: {e}")
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

@@ -1851,8 +1851,13 @@ function exportToExcel() {
 // Update total count
 function updateTotalCount() {
     const tbody = document.getElementById('tableBody');
-    const rowCount = tbody.querySelectorAll('tr').length;
-    document.getElementById('totalBadge').textContent = `Total: ${rowCount}`;
+    const totalBadge = document.getElementById('totalBadge');
+    
+    // Only proceed if both elements exist (for pages that have tables)
+    if (tbody && totalBadge) {
+        const rowCount = tbody.querySelectorAll('tr').length;
+        totalBadge.textContent = `Total: ${rowCount}`;
+    }
 }
 
 
@@ -1962,9 +1967,16 @@ function initializeTableFilters() {
     
     // Close dropdown when clicking outside
     document.addEventListener('click', function(e) {
+        const filterDropdownMenu = document.getElementById('filterDropdownMenu');
+        const filterDropdownBtn = document.getElementById('filterDropdownBtn');
+        
         if (!e.target.closest('.filter-dropdown-container')) {
-            filterDropdownMenu.classList.remove('show');
-            filterDropdownBtn.classList.remove('active');
+            if (filterDropdownMenu) { // Check if element exists
+                filterDropdownMenu.classList.remove('show');
+            }
+            if (filterDropdownBtn) { // Check if element exists
+                filterDropdownBtn.classList.remove('active');
+            }
         }
     });
     
@@ -2223,20 +2235,15 @@ function testFiltering() {
 // Make test function available globally for debugging
 window.testFiltering = testFiltering;
 
-// Update filter status UI
 function updateFilterStatus(isFiltered) {
     const filterBtn = document.getElementById('filterDropdownBtn');
     const totalBadge = document.getElementById('totalBadge');
     
-    if (isFiltered) {
-        if (filterBtn) {
+    // Only proceed if elements exist
+    if (filterBtn) {
+        if (isFiltered) {
             filterBtn.classList.add('active');
-        }
-        // Count visible rows and unchecked rows
-        const tbody = document.getElementById('tableBody');
-        const visibleRows = tbody.querySelectorAll('tr:not([style*="display: none"])').length;
-        const uncheckedRows = tbody.querySelectorAll('.sno-checkbox:not(:checked)').length;
-        const selectedColumns = document.querySelectorAll('.filter-checkbox:checked').length;
+        } else {
         showNotification(`Filters applied: ${uncheckedRows} rows unchecked, ${selectedColumns} columns, ${visibleRows} rows visible`, 'success');
     } else {
         if (filterBtn) {
@@ -2874,8 +2881,11 @@ function updateUndoRedoButtons() {
     const undoBtn = document.getElementById('undoBtn');
     const redoBtn = document.getElementById('redoBtn');
     
-    undoBtn.disabled = historyIndex <= 0;
-    redoBtn.disabled = historyIndex >= history.length - 1;
+    // Only proceed if elements exist
+    if (undoBtn && redoBtn) {
+        undoBtn.disabled = historyIndex <= 0;
+        redoBtn.disabled = historyIndex >= history.length - 1;
+    }
 }
 
 // Add keyboard shortcuts for undo/redo

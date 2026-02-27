@@ -4,6 +4,13 @@ COLLATE utf8mb4_unicode_ci;
 
 USE reminder_dashboard;
 
+-- Also create in cmrl_dashboard for consistency
+CREATE DATABASE IF NOT EXISTS cmrl_dashboard
+CHARACTER SET utf8mb4
+COLLATE utf8mb4_unicode_ci;
+
+USE cmrl_dashboard;
+
 CREATE TABLE IF NOT EXISTS contractor_list (
     id INT AUTO_INCREMENT PRIMARY KEY,
     sno VARCHAR(50),
@@ -48,22 +55,64 @@ COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE IF NOT EXISTS epbg (
     id INT AUTO_INCREMENT PRIMARY KEY,
     sno VARCHAR(50),
+    efile VARCHAR(255),
     contractor TEXT,
-    po_no VARCHAR(255),
-    bg_no VARCHAR(255),
-    bg_date DATE,
-    bg_amount VARCHAR(255),
-    bg_validity VARCHAR(255),
-    gem_bid_no VARCHAR(255),
-    ref_efile_no VARCHAR(255),
+    description TEXT,
+    value VARCHAR(255),
+    start_date DATE,
+    end_date DATE,
+    duration VARCHAR(255),
     file_name VARCHAR(255),
     file_base64 LONGTEXT,
     file_type VARCHAR(100),
-    bg_no_attachment_name VARCHAR(255),
-    bg_no_attachment_base64 LONGTEXT,
-    bg_no_attachment_type VARCHAR(100),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB
+DEFAULT CHARSET=utf8mb4
+COLLATE=utf8mb4_unicode_ci;
+
+-- Contract renewals table
+CREATE TABLE IF NOT EXISTS contract_renewals (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    original_contract_id INT,
+    contractor_name VARCHAR(255),
+    old_end_date DATE,
+    new_end_date DATE,
+    renewal_amount DECIMAL(10,2),
+    status ENUM('pending', 'paid', 'confirmed', 'cancelled') DEFAULT 'pending',
+    payment_id VARCHAR(255),
+    ai_analysis_id INT,
+    user_action ENUM('renew', 'cancel') DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB
+DEFAULT CHARSET=utf8mb4
+COLLATE=utf8mb4_unicode_ci;
+
+-- AI analyses table
+CREATE TABLE IF NOT EXISTS ai_analyses (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    contract_id INT,
+    analysis_type ENUM('risk', 'compliance', 'negotiation', 'renewal_suggestion'),
+    ai_response TEXT,
+    confidence_score DECIMAL(3,2),
+    local_data_used BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB
+DEFAULT CHARSET=utf8mb4
+COLLATE=utf8mb4_unicode_ci;
+
+-- Payment transactions table (for prototype)
+CREATE TABLE IF NOT EXISTS payment_transactions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    renewal_id INT,
+    payment_gateway VARCHAR(50) DEFAULT 'stripe',
+    transaction_id VARCHAR(255),
+    amount DECIMAL(10,2),
+    currency VARCHAR(3) DEFAULT 'USD',
+    status ENUM('pending', 'completed', 'failed', 'refunded', 'prototype') DEFAULT 'prototype',
+    payment_method VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB
 DEFAULT CHARSET=utf8mb4
 COLLATE=utf8mb4_unicode_ci;

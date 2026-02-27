@@ -96,3 +96,56 @@ const epbgAPI = {
         }
     }
 };
+
+// API functions for Contract Renewal
+const contractRenewalAPI = {
+    async getExpiringContracts() {
+        try {
+            return await apiCall('/contract-renewal/expiring', 'GET');
+        } catch (error) {
+            console.error('Failed to load expiring contracts:', error);
+            return [];
+        }
+    },
+    
+    async analyzeContract(contractId, analysisType) {
+        try {
+            return await apiCall('/contract-renewal/analyze', 'POST', {
+                contract_id: contractId,
+                analysis_type: analysisType
+            });
+        } catch (error) {
+            console.error('Failed to analyze contract:', error);
+            throw error;
+        }
+    },
+    
+    async processRenewal(contractData) {
+        try {
+            return await apiCall('/contract-renewal/process-renewal', 'POST', contractData);
+        } catch (error) {
+            console.error('Failed to process renewal:', error);
+            throw error;
+        }
+    },
+    
+    async processPayment(paymentData) {
+        try {
+            return await apiCall('/contract-renewal/process-payment', 'POST', paymentData);
+        } catch (error) {
+            console.error('Failed to process payment:', error);
+            throw error;
+        }
+    },
+    
+    async confirmRenewal(renewalId) {
+        try {
+            return await apiCall('/contract-renewal/confirm', 'POST', {
+                renewal_id: renewalId
+            });
+        } catch (error) {
+            console.error('Failed to confirm renewal:', error);
+            throw error;
+        }
+    }
+};

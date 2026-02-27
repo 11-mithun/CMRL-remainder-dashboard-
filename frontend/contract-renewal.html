@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contract Renewal - CMRL/IT Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+</head>
+
+<body>
+    <div class="dashboard-container">
+        <!-- Mobile Menu Toggle -->
+        <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Toggle Menu">
+            <i class="fas fa-bars"></i>
+        </button>
+        
+        <!-- Mobile Overlay -->
+        <div class="mobile-overlay" id="mobileOverlay"></div>
+
+        <!-- Sidebar Toggle Button -->
+        <button class="sidebar-toggle-btn" id="sidebarToggleBtn" aria-label="Toggle Sidebar">
+            <i class="fas fa-bars"></i>
+        </button>
+
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-grid">
+                        <img src="CMRL.png" class="logo-image">
+                    </div>
+                    <span class="logo-text">CMRL/IT Dashboard</span>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="index.html" class="nav-item" data-module="contractor-list">
+                    <i class="fas fa-list"></i>
+                    <span>Contractor List</span>
+                </a>
+                <a href="bill-tracker.html" class="nav-item" data-module="bill-tracker">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                    <span>Bill Tracker</span>
+                </a>
+                <a href="epbg.html" class="nav-item" data-module="epbgs">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>EPBG's</span>
+                </a>
+                <a href="contract-renewal.html" class="nav-item active" data-module="contract-renewal">
+                    <i class="fas fa-sync-alt"></i>
+                    <span>Contract Renewal</span>
+                </a>
+                <a href="analytics.html" class="nav-item" data-module="analytics">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Analytics</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-profile">
+                    <div class="user-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="user-info">
+                        <div class="user-name" id="userName">Loading...</div>
+                        <div class="user-role" id="userRole">Loading...</div>
+                    </div>
+                </div>
+                <button class="logout-btn" id="sidebarLogoutBtn">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-left">
+                </div>
+                <div class="header-right">
+                    <!-- Header Navigation Icons -->
+                    <nav class="header-nav">
+                        <a href="index.html" class="header-nav-item" data-page="contractor-list" title="Contractor List">
+                            <i class="fas fa-list"></i>
+                        </a>
+                        <a href="bill-tracker.html" class="header-nav-item" data-page="bill-tracker" title="Bill Tracker">
+                            <i class="fas fa-file-invoice-dollar"></i>
+                        </a>
+                        <a href="epbg.html" class="header-nav-item" data-page="epbg" title="EPBG">
+                            <i class="fas fa-shield-alt"></i>
+                        </a>
+                        <a href="contract-renewal.html" class="header-nav-item active" data-page="contract-renewal" title="Contract Renewal">
+                            <i class="fas fa-sync-alt"></i>
+                        </a>
+                        <a href="analytics.html" class="header-nav-item" data-page="analytics" title="Analytics">
+                            <i class="fas fa-chart-line"></i>
+                        </a>
+                    </nav>
+                    
+                    <!-- Header Action Buttons -->
+                    <div class="header-actions">
+                        <button class="header-action-btn refresh-btn" id="refreshBtn" title="Refresh">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button class="header-action-btn print-btn" id="printBtn" title="Print">
+                            <i class="fas fa-print"></i>
+                        </button>
+                        <button class="header-action-btn export-btn" id="exportBtn" title="Export">
+                            <i class="fas fa-download"></i>
+                        </button>
+                    </div>
+                    
+                    <button id="themeToggleBtn" class="theme-toggle-btn" aria-label="Toggle Theme">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                    <div class="search-container">
+                        <i class="fas fa-search search-icon"></i>
+                        <input type="text" class="search-input" placeholder="Search...">
+                    </div>
+                    <button class="notification-btn" id="notificationBellBtn">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge" id="notificationBadge">0</span>
+                    </button>
+                    <div class="profile-dropdown-wrapper">
+                        <button class="profile-trigger" id="profileTrigger" aria-label="User Profile">
+                            <div class="profile-avatar" id="userAvatar">U</div>
+                            <i class="fas fa-chevron-down profile-arrow"></i>
+                        </button>
+                        <div class="profile-dropdown" id="profileDropdown">
+                            <div class="profile-dropdown-header">
+                                <div class="profile-avatar-large" id="userAvatarLarge">U</div>
+                                <div class="profile-dropdown-info">
+                                    <div class="profile-dropdown-name" id="userNameDropdown">Loading...</div>
+                                    <div class="profile-dropdown-role" id="userRoleDropdown">Loading...</div>
+                                </div>
+                            </div>
+                            <div class="profile-dropdown-divider"></div>
+                            <a href="#" class="profile-dropdown-item" id="languageMenuItem">
+                                <i class="fas fa-globe"></i>
+                                <span>Language</span>
+                            </a>
+                            <div class="profile-dropdown-divider"></div>
+                            <a href="#" class="profile-dropdown-item" id="helpMenuItem">
+                                <i class="fas fa-question-circle"></i>
+                                <span>Help & Support</span>
+                            </a>
+                            <div class="profile-dropdown-divider"></div>
+                            <a href="#" class="profile-dropdown-item logout-item" id="profileLogoutBtn">
+                                <i class="fas fa-sign-out-alt"></i>
+                                <span>Logout</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Contract Renewal Content -->
+            <div class="content-area">
+                <!-- Page Title and Stats -->
+                <div class="page-header">
+                    <div class="page-title-section">
+                        <h1 class="page-title">Contract Renewal System</h1>
+                        <p class="page-subtitle">Manage expiring contracts with AI-powered insights</p>
+                    </div>
+                    <div class="header-stats">
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <div class="stat-info">
+                                <div class="stat-number" id="criticalCount">0</div>
+                                <div class="stat-label">Critical (< 7 days)</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <div class="stat-info">
+                                <div class="stat-number" id="warningCount">0</div>
+                                <div class="stat-label">Warning (7-30 days)</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div class="stat-info">
+                                <div class="stat-number" id="renewedCount">0</div>
+                                <div class="stat-label">Renewed</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Filter Section -->
+                <div class="filter-section">
+                    <div class="filter-controls">
+                        <div class="search-box">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="searchInput" placeholder="Search contracts...">
+                        </div>
+                        <div class="filter-buttons">
+                            <button class="filter-btn active" data-filter="all">
+                                <i class="fas fa-list"></i>
+                                All Contracts
+                            </button>
+                            <button class="filter-btn" data-filter="critical">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                Critical
+                            </button>
+                            <button class="filter-btn" data-filter="warning">
+                                <i class="fas fa-clock"></i>
+                                Warning
+                            </button>
+                            <button class="filter-btn" data-filter="renewed">
+                                <i class="fas fa-check-circle"></i>
+                                Renewed
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Expiring Contracts Grid -->
+                <div class="contracts-grid" id="contractsGrid">
+                    <!-- Contract cards will be dynamically added here -->
+                    <div class="loading-spinner">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Loading contracts...</p>
+                    </div>
+                </div>
+
+                <!-- AI Analysis Modal -->
+                <div class="modal-overlay" id="aiAnalysisModal">
+                    <div class="modal-content ai-modal">
+                        <div class="modal-header">
+                            <h3><i class="fas fa-brain"></i> AI Contract Analysis</h3>
+                            <button class="close-btn" onclick="closeModal('aiAnalysisModal')">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="contract-info">
+                                <h4 id="analysisContractName">Contract Name</h4>
+                                <p id="analysisContractDetails">Contract Details</p>
+                            </div>
+                            <div class="ai-analysis-section">
+                                <div class="analysis-tabs">
+                                    <button class="tab-btn active" data-tab="risk">Risk Analysis</button>
+                                    <button class="tab-btn" data-tab="compliance">Compliance Check</button>
+                                    <button class="tab-btn" data-tab="negotiation">Negotiation Tips</button>
+                                    <button class="tab-btn" data-tab="renewal">Renewal Suggestion</button>
+                                </div>
+                                <div class="analysis-content">
+                                    <div class="tab-content active" id="risk-tab">
+                                        <div class="ai-response" id="riskAnalysis">
+                                            <div class="loading-content">
+                                                <i class="fas fa-spinner fa-spin"></i>
+                                                <p>Analyzing contract risks...</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="tab-content" id="compliance-tab">
+                                        <div class="ai-response" id="complianceAnalysis">
+                                            <div class="loading-content">
+                                                <i class="fas fa-spinner fa-spin"></i>
+                                                <p>Checking compliance...</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="tab-content" id="negotiation-tab">
+                                        <div class="ai-response" id="negotiationAnalysis">
+                                            <div class="loading-content">
+                                                <i class="fas fa-spinner fa-spin"></i>
+                                                <p>Preparing negotiation tips...</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="tab-content" id="renewal-tab">
+                                        <div class="ai-response" id="renewalAnalysis">
+                                            <div class="loading-content">
+                                                <i class="fas fa-spinner fa-spin"></i>
+                                                <p>Generating renewal suggestions...</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn-secondary" onclick="closeModal('aiAnalysisModal')">Close</button>
+                            <button class="btn-primary" onclick="downloadAnalysisReport()">
+                                <i class="fas fa-download"></i> Download Report
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Renewal Modal -->
+                <div class="modal-overlay" id="renewalModal">
+                    <div class="modal-content renewal-modal">
+                        <div class="modal-header">
+                            <h3><i class="fas fa-sync-alt"></i> Contract Renewal</h3>
+                            <button class="close-btn" onclick="closeModal('renewalModal')">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="contract-summary">
+                                <h4 id="renewalContractName">Contract Name</h4>
+                                <div class="summary-grid">
+                                    <div class="summary-item">
+                                        <label>Current End Date:</label>
+                                        <span id="currentEndDate">-</span>
+                                    </div>
+                                    <div class="summary-item">
+                                        <label>Contract Value:</label>
+                                        <span id="contractValue">-</span>
+                                    </div>
+                                    <div class="summary-item">
+                                        <label>Days Until Expiry:</label>
+                                        <span id="daysUntilExpiry">-</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="renewal-form">
+                                <div class="form-group">
+                                    <label for="newEndDate">New End Date:</label>
+                                    <input type="date" id="newEndDate" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="renewalAmount">Renewal Amount ($):</label>
+                                    <input type="number" id="renewalAmount" step="0.01" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="renewalTerms">Renewal Terms:</label>
+                                    <textarea id="renewalTerms" rows="3" placeholder="Enter any special terms or conditions..."></textarea>
+                                </div>
+                            </div>
+
+                            <div class="action-choice">
+                                <h5>Choose Action:</h5>
+                                <div class="action-options">
+                                    <label class="action-option">
+                                        <input type="radio" name="userAction" value="renew" checked>
+                                        <div class="option-card">
+                                            <i class="fas fa-sync-alt"></i>
+                                            <h6>Renew Contract</h6>
+                                            <p>Extend the contract with new terms</p>
+                                        </div>
+                                    </label>
+                                    <label class="action-option">
+                                        <input type="radio" name="userAction" value="cancel">
+                                        <div class="option-card">
+                                            <i class="fas fa-times-circle"></i>
+                                            <h6>Cancel Contract</h6>
+                                            <p>Terminate the contract</p>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn-secondary" onclick="closeModal('renewalModal')">Cancel</button>
+                            <button class="btn-primary" onclick="processRenewal()">
+                                <i class="fas fa-check"></i> Process Renewal
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment Modal (Prototype) -->
+                <div class="modal-overlay" id="paymentModal">
+                    <div class="modal-content payment-modal">
+                        <div class="modal-header">
+                            <h3><i class="fas fa-credit-card"></i> Payment Processing (Prototype)</h3>
+                            <button class="close-btn" onclick="closeModal('paymentModal')">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="payment-info">
+                                <div class="payment-amount">
+                                    <label>Amount to Pay:</label>
+                                    <div class="amount-display" id="paymentAmount">$0.00</div>
+                                </div>
+                                <div class="payment-method">
+                                    <label>Payment Method:</label>
+                                    <div class="method-options">
+                                        <label class="method-option">
+                                            <input type="radio" name="paymentMethod" value="card" checked>
+                                            <i class="fas fa-credit-card"></i>
+                                            <span>Credit Card</span>
+                                        </label>
+                                        <label class="method-option">
+                                            <input type="radio" name="paymentMethod" value="bank">
+                                            <i class="fas fa-university"></i>
+                                            <span>Bank Transfer</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="prototype-notice">
+                                <i class="fas fa-info-circle"></i>
+                                <p><strong>Prototype Mode:</strong> This is a demo payment interface. No actual transactions will be processed.</p>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn-secondary" onclick="closeModal('paymentModal')">Cancel</button>
+                            <button class="btn-success" onclick="processPayment()">
+                                <i class="fas fa-lock"></i> Process Payment (Demo)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="api.js"></script>
+    <script src="script.js"></script>
+    <script src="auth.js"></script>
+    <script src="contract-renewal.js"></script>
+    
+    <!-- Contract Renewal Page Specific Scripts -->
+    <script>
+        // Fix logout functionality for contract-renewal page
+        document.addEventListener('DOMContentLoaded', function() {
+            // Handle sidebar logout button
+            const sidebarLogoutBtn = document.getElementById('sidebarLogoutBtn');
+            if (sidebarLogoutBtn) {
+                sidebarLogoutBtn.addEventListener('click', async function(e) {
+                    e.preventDefault();
+                    try {
+                        const response = await fetch('/api/logout', {
+                            method: 'POST',
+                            credentials: 'include'
+                        });
+                        
+                        if (response.ok) {
+                            localStorage.removeItem('user');
+                            window.location.href = '/login.html';
+                        }
+                    } catch (error) {
+                        console.error('Logout error:', error);
+                    }
+                });
+            }
+            
+            // Handle profile dropdown logout button
+            const profileLogoutBtn = document.getElementById('profileLogoutBtn');
+            if (profileLogoutBtn) {
+                profileLogoutBtn.addEventListener('click', async function(e) {
+                    e.preventDefault();
+                    try {
+                        const response = await fetch('/api/logout', {
+                            method: 'POST',
+                            credentials: 'include'
+                        });
+                        
+                        if (response.ok) {
+                            localStorage.removeItem('user');
+                            window.location.href = '/login.html';
+                        }
+                    } catch (error) {
+                        console.error('Logout error:', error);
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>
