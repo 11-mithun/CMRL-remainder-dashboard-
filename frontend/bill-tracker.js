@@ -165,7 +165,14 @@ function loadSyncedData(syncData) {
                     </select>
                 </td>
                 <td><div class="months-status">${rowData.months || ''}</div></td>
-                <td><div class="pending-status">${rowData.pendingStatus || ''}</div></td>
+                <td>
+                    <select class="status-select">
+                        <option value="" ${!rowData.status ? 'selected' : ''}>Select Status</option>
+                        <option value="Paid" ${rowData.status === 'Paid' ? 'selected' : ''}>Paid</option>
+                        <option value="Not Paid" ${rowData.status === 'Not Paid' ? 'selected' : ''}>Not Paid</option>
+                        <option value="Pending" ${rowData.status === 'Pending' ? 'selected' : ''}>Pending</option>
+                    </select>
+                </td>
                 <td><input type="text" class="remarks-input" value="${rowData.remarks || ''}" placeholder="REMARKS"></td>
                 <td>
                     <div class="action-cell">
@@ -695,9 +702,6 @@ function processImportedData(jsonData) {
         // The select months dropdown is for filtering/calculation only
         const months = ''; // Empty initially, will be filled by dropdown selection
         
-        // Get pending status from Excel - check multiple possible column names
-        const pendingStatus = row["Pending Status"] || row["Pending"] || row["Status"] || row["paid"] || row["Paid"] || '';
-        
         // Get remarks from Excel
         const remarks = row["Remarks"] || row["remarks"] || '';
         
@@ -721,7 +725,7 @@ function processImportedData(jsonData) {
         
         frequency = frequencyMap[frequency] || frequency;
         
-        console.log('Final values:', { sno, efileNo, contractor, startDate, endDate, duration, handleBy, frequency, months, pendingStatus, remarks });
+        console.log('Final values:', { sno, efileNo, contractor, startDate, endDate, duration, handleBy, frequency, months, remarks });
         
         // Format date as YYYY-MM-DD for HTML date inputs
         const formatYYYYMMDD = (date) => {
@@ -771,7 +775,12 @@ function processImportedData(jsonData) {
                 <div class="months-status">${months || ''}</div>
             </td>
             <td>
-                <div class="pending-status">${pendingStatus || ''}</div>
+                <select class="status-select">
+                    <option value="">Select Status</option>
+                    <option value="Paid">Paid</option>
+                    <option value="Not Paid">Not Paid</option>
+                    <option value="Pending">Pending</option>
+                </select>
             </td>
             <td>
                 <input type="text" class="remarks-input" placeholder="Enter Remarks" value="${remarks}">
@@ -786,9 +795,6 @@ function processImportedData(jsonData) {
         `;
         
         tbody.appendChild(tableRow);
-        
-        // Store the original Excel pending status in dataset
-        tableRow.dataset.excelPendingStatus = pendingStatus;
         
         // Setup event listeners for the imported row
         setupRowEventListeners(tableRow);
@@ -1205,7 +1211,15 @@ function addRow() {
             </select>
         </td>
         <td>
-            <div class="pending-status"></div>
+            <div class="months-status"></div>
+        </td>
+        <td>
+            <select class="status-select">
+                <option value="">Select Status</option>
+                <option value="Paid">Paid</option>
+                <option value="Not Paid">Not Paid</option>
+                <option value="Pending">Pending</option>
+            </select>
         </td>
         <td>
             <input type="text" class="remarks-input" placeholder="Enter Remarks">
@@ -1255,13 +1269,13 @@ async function saveData() {
         const handleBy = row.querySelector('.handle-by-input')?.value || '';
         const frequency = row.querySelector('.frequency-select')?.value || '';
         const months = row.querySelector('.months-status')?.textContent || '';
-        const pendingStatus = row.querySelector('.pending-status')?.textContent || '';
+        const status = row.querySelector('.status-select')?.value || '';
         const remarks = row.querySelector('.remarks-input')?.value || '';
         
         // DEBUG: Log data collection
-        console.log(`Save Row ${index}: EFILE="${efileNo}", CONTRACTOR="${contractor}", FREQUENCY="${frequency}", MONTHS="${months}", PENDING STATUS="${pendingStatus}", REMARKS="${remarks}"`);
+        console.log(`Save Row ${index}: EFILE="${efileNo}", CONTRACTOR="${contractor}", FREQUENCY="${frequency}", MONTHS="${months}", STATUS="${status}", REMARKS="${remarks}"`);
 
-        if (sno || efileNo || contractor || startDate || endDate || handleBy || frequency || months || pendingStatus || remarks) {
+        if (sno || efileNo || contractor || startDate || endDate || handleBy || frequency || months || status || remarks) {
             data.push({
                 sno,
                 efileNo,
@@ -1272,7 +1286,7 @@ async function saveData() {
                 handleBy,
                 frequency,
                 months,
-                pendingStatus,
+                status,
                 remarks
             });
         }
@@ -1304,7 +1318,7 @@ async function saveDataToStorage() {
         const handleBy = row.querySelector('.handle-by-input')?.value || '';
         const frequency = row.querySelector('.frequency-select')?.value || '';
         const months = row.querySelector('.months-status')?.textContent || '';
-        const pendingStatus = row.querySelector('.pending-status')?.textContent || '';
+        const status = row.querySelector('.status-select')?.value || '';
         const remarks = row.querySelector('.remarks-input')?.value || '';
 
         dataToSave.push({
@@ -1317,7 +1331,7 @@ async function saveDataToStorage() {
             handleBy,
             frequency,
             months,
-            pendingStatus,
+            status,
             remarks
         });
     }
@@ -1457,7 +1471,7 @@ function exportToExcel() {
         'HANDLE BY',
         'FREQUENCY',
         'MONTHS',
-        'PENDING STATUS',
+        'STATUS',
         'REMARKS'
     ]);
     
@@ -1471,7 +1485,7 @@ function exportToExcel() {
         const handleBy = row.querySelector('.handle-by-input')?.value || '';
         const frequency = row.querySelector('.frequency-select')?.value || '';
         const months = row.querySelector('.months-status')?.textContent || '';
-        const pendingStatus = row.querySelector('.pending-status')?.textContent || '';
+        const status = row.querySelector('.status-select')?.value || '';
         const remarks = row.querySelector('.remarks-input')?.value || '';
         
         exportData.push([
@@ -1484,7 +1498,7 @@ function exportToExcel() {
             handleBy,
             frequency,
             months,
-            pendingStatus,
+            status,
             remarks
         ]);
     });
@@ -1525,7 +1539,7 @@ function filterTable(searchTerm) {
         const frequency = row.querySelector('.frequency-select')?.value.toLowerCase() || '';
         const remarks = row.querySelector('.remarks-input')?.value.toLowerCase() || '';
         const monthsStatus = row.querySelector('.months-status')?.textContent.toLowerCase() || '';
-        const pendingStatus = row.querySelector('.pending-status')?.textContent.toLowerCase() || '';
+        const status = row.querySelector('.status-select')?.value.toLowerCase() || '';
         
         const matches = sno.includes(searchTerm.toLowerCase()) || 
                        efile.includes(searchTerm.toLowerCase()) || 
@@ -1536,7 +1550,7 @@ function filterTable(searchTerm) {
                        handleBy.includes(searchTerm.toLowerCase()) || 
                        frequency.includes(searchTerm.toLowerCase()) ||
                        monthsStatus.includes(searchTerm.toLowerCase()) ||
-                       pendingStatus.includes(searchTerm.toLowerCase()) ||
+                       status.includes(searchTerm.toLowerCase()) ||
                        remarks.includes(searchTerm.toLowerCase());
         
         row.style.display = matches ? '' : 'none';
@@ -1580,7 +1594,6 @@ function updateAllMonthsStatusWithYear(selectedMonth, selectedYear) {
     const rows = tbody.querySelectorAll('tr');
     rows.forEach(row => {
         const monthsStatusDiv = row.querySelector('.months-status');
-        const pendingStatusDiv = row.querySelector('.pending-status');
         
         // UPDATE months status with selected month and year
         if (monthsStatusDiv) {
@@ -1602,232 +1615,12 @@ function updateAllMonthsStatusWithYear(selectedMonth, selectedYear) {
             monthsStatusDiv.style.color = color;
         }
         
-        // UPDATE pending status based on Excel data for selected month/year
-        if (pendingStatusDiv) {
-            // Get the original Excel pending status
-            const excelPendingStatus = row.dataset.excelPendingStatus || '';
-            
-            if (excelPendingStatus && excelPendingStatus.trim() !== '') {
-                // Show Excel data with proper color
-                pendingStatusDiv.textContent = excelPendingStatus;
-                updatePendingStatusColor(pendingStatusDiv, excelPendingStatus);
-            } else {
-                // No Excel data - show null/dash
-                pendingStatusDiv.textContent = '-';
-                pendingStatusDiv.style.color = '#ffa502'; // Orange for null
-            }
-        }
+        // PENDING STATUS COLUMN REMOVED - skipping this logic
         
-        // FILTER ROWS based on selected month/year
-        filterRowByMonthYear(row, selectedMonth, selectedYear);
     });
 }
 
-// Calculate pending status with year consideration
-function calculatePendingStatusWithYear(row, selectedMonth, selectedYear) {
-    if (!selectedMonth || !selectedYear) {
-        return { text: '-', color: '#ffa502' };
-    }
-    
-    const endDateInput = row.querySelector('.end-date-input');
-    if (!endDateInput || !endDateInput.value) {
-        return { text: 'Pending', color: '#ffa502' };
-    }
-    
-    const endDate = new Date(endDateInput.value);
-    const currentDate = new Date();
-    
-    // Get month number for comparison
-    const monthMap = {
-        'January': 0, 'February': 1, 'March': 2, 'April': 3,
-        'May': 4, 'June': 5, 'July': 6, 'August': 7,
-        'September': 8, 'October': 9, 'November': 10, 'December': 11
-    };
-    
-    const selectedMonthNum = monthMap[selectedMonth];
-    const selectedYearNum = parseInt(selectedYear);
-    const endMonthNum = endDate.getMonth();
-    const endYearNum = endDate.getFullYear();
-    const currentYearNum = currentDate.getFullYear();
-    const currentMonthNum = currentDate.getMonth();
-    
-    // Determine status based on comparison
-    if (selectedYearNum < endYearNum) {
-        return { text: 'Paid', color: '#2ed573' };
-    } else if (selectedYearNum === endYearNum) {
-        if (selectedMonthNum < endMonthNum) {
-            return { text: 'Paid', color: '#2ed573' };
-        } else if (selectedMonthNum === endMonthNum) {
-            if (currentMonthNum >= endMonthNum && currentYearNum >= endYearNum) {
-                return { text: 'Paid', color: '#2ed573' };
-            } else {
-                return { text: 'Pending', color: '#ffa502' };
-            }
-        } else {
-            return { text: 'Not Paid', color: '#ff4757' };
-        }
-    } else {
-        return { text: 'Not Paid', color: '#ff4757' };
-    }
-}
-
-// Update all months status with selected month only
-function updateAllMonthsStatus(selectedMonth) {
-    const tbody = document.getElementById('tableBody');
-    if (!tbody) return;
-    
-    const rows = tbody.querySelectorAll('tr');
-    rows.forEach(row => {
-        const monthsStatusDiv = row.querySelector('.months-status');
-        const pendingStatusDiv = row.querySelector('.pending-status');
-        
-        // UPDATE months status with selected month
-        // This is for filtering/calculation purposes
-        if (monthsStatusDiv) {
-            let displayText = '';
-            let color = '#ffa502'; // Default orange for pending
-            
-            if (selectedMonth) {
-                displayText = selectedMonth;
-                color = '#2ed573'; // Green for selected
-            } else {
-                displayText = '-';
-                color = '#ffa502'; // Orange for no selection
-            }
-            
-            monthsStatusDiv.textContent = displayText;
-            monthsStatusDiv.style.color = color;
-        }
-        
-        // UPDATE pending status based on selected month only
-        // This is the calculation logic
-        if (pendingStatusDiv) {
-            const currentStatus = pendingStatusDiv.textContent.trim();
-            
-            // If there's existing Excel data, preserve it
-            if (currentStatus && 
-                currentStatus !== '-' && 
-                currentStatus !== '' &&
-                (currentStatus.toLowerCase().includes('paid') || 
-                 currentStatus.toLowerCase().includes('pending') ||
-                 currentStatus.toLowerCase().includes('not paid'))) {
-                // Just update color for existing Excel status
-                updatePendingStatusColor(pendingStatusDiv, currentStatus);
-            } else {
-                // Calculate based on selected month
-                if (selectedMonth) {
-                    const pendingStatus = calculatePendingStatus(row, selectedMonth);
-                    pendingStatusDiv.textContent = pendingStatus.text;
-                    pendingStatusDiv.style.color = pendingStatus.color;
-                } else {
-                    // No selection - clear or show default
-                    pendingStatusDiv.textContent = '-';
-                    pendingStatusDiv.style.color = '#ffa502';
-                }
-            }
-        }
-    });
-}
-
-// Calculate pending status (Paid/Not Paid/Pending) based on selected month only and end date
-function calculatePendingStatus(row, selectedMonth) {
-    if (!selectedMonth) {
-        return { text: '-', color: '#ffa502' };
-    }
-    
-    const endDateInput = row.querySelector('.end-date-input');
-    if (!endDateInput || !endDateInput.value) {
-        return { text: 'Pending', color: '#ffa502' };
-    }
-    
-    const endDate = new Date(endDateInput.value);
-    const currentDate = new Date();
-    
-    // Get month number for comparison
-    const monthMap = {
-        'January': 0, 'February': 1, 'March': 2, 'April': 3,
-        'May': 4, 'June': 5, 'July': 6, 'August': 7,
-        'September': 8, 'October': 9, 'November': 10, 'December': 11
-    };
-    
-    const selectedMonthNum = monthMap[selectedMonth];
-    const endMonthNum = endDate.getMonth();
-    const endYearNum = endDate.getFullYear();
-    const currentYearNum = currentDate.getFullYear();
-    const currentMonthNum = currentDate.getMonth();
-    
-    // Determine status based on comparison (using current year)
-    if (selectedMonthNum < endMonthNum) {
-        return { text: 'Paid', color: '#2ed573' };
-    } else if (selectedMonthNum === endMonthNum) {
-        if (currentMonthNum >= endMonthNum && currentYearNum >= endYearNum) {
-            return { text: 'Paid', color: '#2ed573' };
-        } else {
-            return { text: 'Pending', color: '#ffa502' };
-        }
-    } else {
-        return { text: 'Not Paid', color: '#ff4757' };
-    }
-}
-
-// Filter row based on selected month and year
-function filterRowByMonthYear(row, selectedMonth, selectedYear) {
-    // Show all rows if no selection
-    if (!selectedMonth && !selectedYear) {
-        row.style.display = '';
-        return;
-    }
-    
-    // For now, show all rows - this can be enhanced later
-    // The main purpose is to update the display based on Excel data
-    row.style.display = '';
-}
-
-// Update pending status color based on status text
-function updatePendingStatusColor(pendingStatusDiv, statusText) {
-    const statusLower = statusText.toLowerCase().trim();
-    
-    if (statusLower.includes('paid') || statusLower === 'paid') {
-        pendingStatusDiv.style.color = '#2ed573'; // Green
-    } else if (statusLower.includes('not paid') || statusLower === 'not paid' || statusLower.includes('unpaid')) {
-        pendingStatusDiv.style.color = '#ff4757'; // Red
-    } else if (statusLower.includes('pending') || statusLower === 'pending') {
-        pendingStatusDiv.style.color = '#ffa502'; // Orange
-    } else {
-        pendingStatusDiv.style.color = '#ffffff'; // Default white for other values
-    }
-}
-
-// Force recalculate all pending statuses (override Excel data)
-function forceRecalculateAllPendingStatuses() {
-    const tbody = document.getElementById('tableBody');
-    if (!tbody) return;
-    
-    const globalMonthsSelect = document.getElementById('globalMonthsSelect');
-    const filterYearSelect = document.getElementById('filterYearSelect');
-    const selectedMonth = globalMonthsSelect ? globalMonthsSelect.value : '';
-    const selectedYear = filterYearSelect ? filterYearSelect.value : '';
-    
-    const rows = tbody.querySelectorAll('tr');
-    rows.forEach(row => {
-        const pendingStatusDiv = row.querySelector('.pending-status');
-        
-        if (pendingStatusDiv) {
-            let pendingStatus;
-            
-            if (selectedYear) {
-                pendingStatus = calculatePendingStatusWithYear(row, selectedMonth, selectedYear);
-            } else {
-                pendingStatus = calculatePendingStatus(row, selectedMonth);
-            }
-            
-            pendingStatusDiv.textContent = pendingStatus.text;
-            pendingStatusDiv.style.color = pendingStatus.color;
-        }
-    });
-    
-    console.log('Force recalculated all pending statuses');
-}
+// PENDING STATUS FUNCTIONS REMOVED - no longer needed
 
 // Update total count
 function updateTotalCount() {
@@ -2129,8 +1922,15 @@ async function loadData() {
                         </select>
                     </td>
                     <td><div class="months-status">${rowData.months || ''}</div></td>
-                    <td><div class="pending-status">${rowData.pendingStatus || ''}</div></td>
-                    <td><input type="text" class="remarks-input" value="${rowData.remarks || ''}" placeholder="REMARKS"></td>
+                    <td>
+                        <select class="status-select">
+                            <option value="" ${!rowData.status ? 'selected' : ''}>Select Status</option>
+                            <option value="Paid" ${rowData.status === 'Paid' ? 'selected' : ''}>Paid</option>
+                            <option value="Not Paid" ${rowData.status === 'Not Paid' ? 'selected' : ''}>Not Paid</option>
+                            <option value="Pending" ${rowData.status === 'Pending' ? 'selected' : ''}>Pending</option>
+                        </select>
+                    </td>
+                <td><input type="text" class="remarks-input" value="${rowData.remarks || ''}" placeholder="REMARKS"></td>
                     <td>
                         <div class="action-cell">
                             <button class="delete-btn" onclick="deleteRow(this)">
@@ -2692,7 +2492,7 @@ function getColumnIndices(columnNames) {
         'handleBy': 6,
         'frequency': 7,
         'months': 8,
-        'pendingStatus': 9,
+        'status': 9,
         'remarks': 10,
         'action': 11
     };
@@ -2752,7 +2552,7 @@ function updateTableHeaders(selectedColumns) {
         'handleBy': 6,
         'frequency': 7,
         'months': 8,
-        'pendingStatus': 9,
+        'status': 9,
         'remarks': 10,
         'action': 11
     };

@@ -212,8 +212,8 @@
                                         <label for="filter-months">MONTHS</label>
                                     </div>
                                     <div class="filter-item">
-                                        <input type="checkbox" class="filter-checkbox" id="filter-pendingStatus" data-column="pendingStatus">
-                                        <label for="filter-pendingStatus">PENDING STATUS</label>
+                                        <input type="checkbox" class="filter-checkbox" id="filter-status" data-column="status">
+                                        <label for="filter-status">STATUS</label>
                                     </div>
                                     <div class="filter-item">
                                         <input type="checkbox" class="filter-checkbox" id="filter-remarks" data-column="remarks">
@@ -280,7 +280,7 @@
                                             <option value="December">December</option>
                                         </select>
                                     </th>
-                                    <th>PENDING STATUS</th>
+                                    <th>STATUS</th>
                                     <th>REMARKS</th>
                                     <th>ACTION</th>
                                 </tr>
@@ -595,6 +595,35 @@
                     this.classList.remove('expanded');
                 }
             });
+        }
+        
+        // Set current year as default in Year dropdown
+        const filterYearSelect = document.getElementById('filterYearSelect');
+        if (filterYearSelect) {
+            const currentYear = new Date().getFullYear().toString();
+            
+            // Check if current year exists as an option
+            const currentYearOption = Array.from(filterYearSelect.options).find(option => option.value === currentYear);
+            
+            if (currentYearOption) {
+                filterYearSelect.value = currentYear;
+                console.log(`Year dropdown set to current year: ${currentYear}`);
+            } else {
+                // If current year not found, add it as the first option after "Select Year"
+                const newOption = document.createElement('option');
+                newOption.value = currentYear;
+                newOption.textContent = currentYear;
+                newOption.selected = true;
+                
+                // Insert after the first option (Select Year)
+                if (filterYearSelect.options.length > 0) {
+                    filterYearSelect.insertBefore(newOption, filterYearSelect.options[1]);
+                } else {
+                    filterYearSelect.add(newOption);
+                }
+                
+                console.log(`Added and set current year: ${currentYear} to dropdown`);
+            }
         }
     </script>
     
