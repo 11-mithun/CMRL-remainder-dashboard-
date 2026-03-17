@@ -171,6 +171,8 @@ function loadSyncedData(syncData) {
                         <option value="Paid" ${rowData.status === 'Paid' ? 'selected' : ''}>Paid</option>
                         <option value="Not Paid" ${rowData.status === 'Not Paid' ? 'selected' : ''}>Not Paid</option>
                         <option value="Pending" ${rowData.status === 'Pending' ? 'selected' : ''}>Pending</option>
+                        <option value="Initialized" ${rowData.status === 'Initialized' ? 'selected' : ''}>Initialized</option>
+                        <option value="Processed" ${rowData.status === 'Processed' ? 'selected' : ''}>Processed</option>
                     </select>
                 </td>
                 <td><input type="text" class="remarks-input" value="${rowData.remarks || ''}" placeholder="REMARKS"></td>
@@ -228,6 +230,10 @@ document.addEventListener('DOMContentLoaded', function() {
     updateTotalCount();
     setupLiveUpdates(); // Setup live data updates
     initializeBulkOperations(); // Initialize bulk operations
+    initializeGlobalMonthsDropdown(); // Initialize month dropdown
+    initializeFilterYearDropdown(); // Initialize year dropdown
+    loadDropdownSelections(); // Load saved dropdown selections
+    updateDropdownEventListeners(); // Update event listeners to save selections
 });
 
 // Setup event listeners
@@ -780,6 +786,8 @@ function processImportedData(jsonData) {
                     <option value="Paid">Paid</option>
                     <option value="Not Paid">Not Paid</option>
                     <option value="Pending">Pending</option>
+                    <option value="Initialized">Initialized</option>
+                    <option value="Processed">Processed</option>
                 </select>
             </td>
             <td>
@@ -1219,6 +1227,8 @@ function addRow() {
                 <option value="Paid">Paid</option>
                 <option value="Not Paid">Not Paid</option>
                 <option value="Pending">Pending</option>
+                <option value="Initialized">Initialized</option>
+                <option value="Processed">Processed</option>
             </select>
         </td>
         <td>
@@ -1400,7 +1410,7 @@ function printTable() {
                         <th>HANDLE BY</th>
                         <th>FREQUENCY</th>
                         <th>MONTHS</th>
-                        <th>PENDING</th>
+                        <th>STATUS</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -1415,7 +1425,8 @@ function printTable() {
         const duration = row.querySelector('.duration-input')?.value || '-';
         const handleBy = row.querySelector('.handle-by-input')?.value || '';
         const frequency = row.querySelector('.frequency-select')?.value || '';
-        const months = row.querySelector('.months-select')?.value || '';
+        const months = row.querySelector('.months-status')?.textContent || '';
+        const status = row.querySelector('.status-select')?.value || '';
         const remarks = row.querySelector('.remarks-input')?.value || '';
         
         printContent += `
@@ -1429,7 +1440,7 @@ function printTable() {
                         <td>${handleBy}</td>
                         <td>${frequency}</td>
                         <td>${months}</td>
-                        <td>${pending}</td>
+                        <td>${status}</td>
                     </tr>
         `;
     });
@@ -1559,6 +1570,74 @@ function filterTable(searchTerm) {
     updateTotalCount();
 }
 
+// Update all months status with selected month only
+function updateAllMonthsStatus(selectedMonth, selectedYear) {
+    const tbody = document.getElementById('tableBody');
+    if (!tbody) return;
+    
+    const rows = tbody.querySelectorAll('tr');
+    rows.forEach(row => {
+        const monthsStatusDiv = row.querySelector('.months-status');
+        
+        if (monthsStatusDiv) {
+            let displayText = '';
+            let color = '#ffa502'; // Default orange for pending
+            
+            if (selectedMonth) {
+                displayText = selectedMonth;
+                color = '#2ed573'; // Green for selected
+            } else {
+                displayText = '-';
+                color = '#ffa502'; // Orange for no selection
+            }
+            
+            monthsStatusDiv.textContent = displayText;
+            monthsStatusDiv.style.color = color;
+        }
+    });
+}
+
+// Test function to verify month and year synchronization
+function testMonthYearSync() {
+    console.log('=== Testing Month/Year Synchronization ===');
+    
+    // Test 1: Check if dropdowns exist
+    const globalMonthsSelect = document.getElementById('globalMonthsSelect');
+    const filterYearSelect = document.getElementById('filterYearSelect');
+    
+    console.log('Month dropdown exists:', !!globalMonthsSelect);
+    console.log('Year dropdown exists:', !!filterYearSelect);
+    
+    if (globalMonthsSelect && filterYearSelect) {
+        console.log('Current month selection:', globalMonthsSelect.value);
+        console.log('Current year selection:', filterYearSelect.value);
+        
+        // Test 2: Check if months-status divs exist in table
+        const monthsStatusDivs = document.querySelectorAll('.months-status');
+        console.log('Number of months-status divs:', monthsStatusDivs.length);
+        
+        if (monthsStatusDivs.length > 0) {
+            console.log('First months-status content:', monthsStatusDivs[0].textContent);
+            console.log('First months-status color:', monthsStatusDivs[0].style.color);
+        }
+        
+        // Test 3: Check localStorage
+        const savedSelections = localStorage.getItem('billTrackerDropdownSelections');
+        console.log('Saved selections in localStorage:', savedSelections);
+        
+        // Test 4: Check if functions exist
+        console.log('updateAllMonthsStatus function exists:', typeof updateAllMonthsStatus);
+        console.log('updateAllMonthsStatusWithYear function exists:', typeof updateAllMonthsStatusWithYear);
+        console.log('saveDropdownSelections function exists:', typeof saveDropdownSelections);
+        console.log('loadDropdownSelections function exists:', typeof loadDropdownSelections);
+    }
+    
+    console.log('=== End Test ===');
+}
+
+// Add test function to window for easy access in browser console
+window.testMonthYearSync = testMonthYearSync;
+
 // Initialize global months dropdown functionality
 function initializeGlobalMonthsDropdown() {
     const globalMonthsSelect = document.getElementById('globalMonthsSelect');
@@ -1566,7 +1645,17 @@ function initializeGlobalMonthsDropdown() {
     
     globalMonthsSelect.addEventListener('change', function(e) {
         const selectedMonth = e.target.value;
-        updateAllMonthsStatus(selectedMonth, '');
+        const filterYearSelect = document.getElementById('filterYearSelect');
+        const selectedYear = filterYearSelect ? filterYearSelect.value : '';
+        
+        // If year is selected, use combined update, otherwise use month-only update
+        if (selectedYear) {
+            updateAllMonthsStatusWithYear(selectedMonth, selectedYear);
+            console.log('Month selected:', selectedMonth, 'with year:', selectedYear);
+        } else {
+            updateAllMonthsStatus(selectedMonth, '');
+            console.log('Month selected:', selectedMonth, 'without year');
+        }
     });
 }
 
@@ -1582,7 +1671,7 @@ function initializeFilterYearDropdown() {
         
         // Sync with month column - update status with selected year and month
         updateAllMonthsStatusWithYear(selectedMonth, selectedYear);
-        console.log('Filter year selected:', selectedYear);
+        console.log('Filter year selected:', selectedYear, 'with month:', selectedMonth);
     });
 }
 
@@ -1928,6 +2017,8 @@ async function loadData() {
                             <option value="Paid" ${rowData.status === 'Paid' ? 'selected' : ''}>Paid</option>
                             <option value="Not Paid" ${rowData.status === 'Not Paid' ? 'selected' : ''}>Not Paid</option>
                             <option value="Pending" ${rowData.status === 'Pending' ? 'selected' : ''}>Pending</option>
+                            <option value="Initialized" ${rowData.status === 'Initialized' ? 'selected' : ''}>Initialized</option>
+                            <option value="Processed" ${rowData.status === 'Processed' ? 'selected' : ''}>Processed</option>
                         </select>
                     </td>
                 <td><input type="text" class="remarks-input" value="${rowData.remarks || ''}" placeholder="REMARKS"></td>
@@ -1958,12 +2049,115 @@ async function loadData() {
             updateTotalCount();
             console.log('Data loaded successfully');
             
+            // Restore month and year dropdown selections from saved data
+            restoreDropdownSelections(data);
+            
             // Trigger duration color updates after data is loaded
             setTimeout(() => {
                 updateAllDurations();
             }, 100);
         } catch (error) {
             console.error('Error loading data:', error);
+        }
+    }
+}
+
+// Save dropdown selections to localStorage
+function saveDropdownSelections() {
+    const globalMonthsSelect = document.getElementById('globalMonthsSelect');
+    const filterYearSelect = document.getElementById('filterYearSelect');
+    
+    const selections = {
+        month: globalMonthsSelect ? globalMonthsSelect.value : '',
+        year: filterYearSelect ? filterYearSelect.value : ''
+    };
+    
+    localStorage.setItem('billTrackerDropdownSelections', JSON.stringify(selections));
+    console.log('Saved dropdown selections:', selections);
+}
+
+// Load dropdown selections from localStorage
+function loadDropdownSelections() {
+    const saved = localStorage.getItem('billTrackerDropdownSelections');
+    if (saved) {
+        try {
+            const selections = JSON.parse(saved);
+            
+            // Restore month dropdown
+            const globalMonthsSelect = document.getElementById('globalMonthsSelect');
+            if (globalMonthsSelect && selections.month) {
+                globalMonthsSelect.value = selections.month;
+                console.log('Loaded month selection:', selections.month);
+            }
+            
+            // Restore year dropdown
+            const filterYearSelect = document.getElementById('filterYearSelect');
+            if (filterYearSelect && selections.year) {
+                filterYearSelect.value = selections.year;
+                console.log('Loaded year selection:', selections.year);
+            }
+            
+            return selections;
+        } catch (error) {
+            console.error('Error loading dropdown selections:', error);
+        }
+    }
+    return null;
+}
+
+// Update dropdown event listeners to save selections
+function updateDropdownEventListeners() {
+    const globalMonthsSelect = document.getElementById('globalMonthsSelect');
+    const filterYearSelect = document.getElementById('filterYearSelect');
+    
+    if (globalMonthsSelect) {
+        globalMonthsSelect.addEventListener('change', saveDropdownSelections);
+    }
+    
+    if (filterYearSelect) {
+        filterYearSelect.addEventListener('change', saveDropdownSelections);
+    }
+}
+
+// Restore month and year dropdown selections from saved data
+function restoreDropdownSelections(data) {
+    if (!data || data.length === 0) return;
+    
+    // Find the first row with month data to restore dropdown selections
+    const firstRowWithMonth = data.find(row => row.months && row.months.trim() !== '');
+    
+    if (firstRowWithMonth && firstRowWithMonth.months) {
+        const monthsValue = firstRowWithMonth.months.trim();
+        
+        // Check if the months value contains both month and year (e.g., "January 2025")
+        if (monthsValue.includes(' ')) {
+            const parts = monthsValue.split(' ');
+            if (parts.length >= 2) {
+                const month = parts[0];
+                const year = parts[1];
+                
+                // Restore month dropdown
+                const globalMonthsSelect = document.getElementById('globalMonthsSelect');
+                if (globalMonthsSelect) {
+                    globalMonthsSelect.value = month;
+                    console.log('Restored month selection:', month);
+                }
+                
+                // Restore year dropdown
+                const filterYearSelect = document.getElementById('filterYearSelect');
+                if (filterYearSelect) {
+                    filterYearSelect.value = year;
+                    console.log('Restored year selection:', year);
+                }
+            }
+        } else {
+            // Only month is present
+            const month = monthsValue;
+            const globalMonthsSelect = document.getElementById('globalMonthsSelect');
+            if (globalMonthsSelect) {
+                globalMonthsSelect.value = month;
+                console.log('Restored month selection only:', month);
+            }
         }
     }
 }

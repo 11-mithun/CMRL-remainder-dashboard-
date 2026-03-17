@@ -72,7 +72,7 @@ DB_CONFIG = {
     'host': os.getenv('DB_HOST', '127.0.0.1'),
     'database': os.getenv('DB_NAME', 'cmrl_dashboard'),
     'user': os.getenv('DB_USER', 'root'),
-    'password': os.getenv('DB_PASSWORD', '2003'),
+    'password': os.getenv('DB_PASSWORD', '2005'),
     'port': int(os.getenv('DB_PORT', 3306)),
     'charset': 'utf8mb4',
     'collation': 'utf8mb4_unicode_ci',
