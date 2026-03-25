@@ -143,6 +143,33 @@
                 </div>
             </header>
 
+            <dialog id="billTrackerExportDialog" style="border:none;border-radius:12px;padding:0;max-width:520px;width:calc(100% - 32px);box-shadow:0 10px 30px rgba(0,0,0,.25);">
+                <form method="dialog" style="padding:18px 18px 14px 18px;">
+                    <div style="font-weight:700;font-size:16px;margin-bottom:12px;">Export Bill Tracker</div>
+                    <div style="display:grid;grid-template-columns:1fr;gap:12px;">
+                        <label style="display:grid;gap:6px;">
+                            <span style="font-size:13px;opacity:.85;">Export Type</span>
+                            <select id="billTrackerExportType" style="width:100%;padding:10px;border-radius:8px;border:1px solid rgba(0,0,0,.15);">
+                                <option value="month">Month-wise (single file)</option>
+                                <option value="year">Year-wise (12 files)</option>
+                            </select>
+                        </label>
+                        <label style="display:grid;gap:6px;">
+                            <span style="font-size:13px;opacity:.85;">Year</span>
+                            <select id="billTrackerExportYear" style="width:100%;padding:10px;border-radius:8px;border:1px solid rgba(0,0,0,.15);"></select>
+                        </label>
+                        <label style="display:grid;gap:6px;">
+                            <span style="font-size:13px;opacity:.85;">Month</span>
+                            <select id="billTrackerExportMonth" style="width:100%;padding:10px;border-radius:8px;border:1px solid rgba(0,0,0,.15);"></select>
+                        </label>
+                    </div>
+                    <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px;">
+                        <button id="billTrackerExportCancelBtn" value="cancel" style="padding:10px 14px;border-radius:8px;border:1px solid rgba(0,0,0,.15);background:transparent;">Cancel</button>
+                        <button id="billTrackerExportConfirmBtn" value="default" style="padding:10px 14px;border-radius:8px;border:0;background:#2ed573;color:#fff;font-weight:700;">Export</button>
+                    </div>
+                </form>
+            </dialog>
+
             <!-- Content Area -->
             <div class="content-area">
                 <div class="card">

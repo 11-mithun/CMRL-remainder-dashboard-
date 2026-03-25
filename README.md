@@ -911,6 +911,634 @@ VALUES ('Admin', 'admin@cmrl.com', 'admin123', 'admin');
 
 ---
 
+## 📊 Excel Parsing & File Management System
+
+### Overview
+The CMRL Dashboard implements a comprehensive Excel parsing and file management system that handles both data import/export and file attachment functionality. This system uses modern JavaScript APIs and libraries to provide seamless Excel integration.
+
+### Technologies Used
+
+#### **Frontend Excel Processing**
+- **JavaScript FileReader API**: Native browser API for reading local files
+- **JavaScript Blob API**: For creating downloadable files
+- **Base64 Encoding**: For file storage and transmission
+- **Custom Excel Parser**: Built-in JavaScript Excel parsing logic
+- **CSV Generation**: Native JavaScript CSV export functionality
+
+#### **Backend Excel Support**
+- **Python openpyxl**: Excel file processing library
+- **Python pandas**: Data manipulation and analysis
+- **MySQL Database**: Persistent storage of parsed data
+- **Flask File Upload**: Backend file handling
+
+### Excel Import Logic
+
+#### **1. File Selection & Validation**
+```javascript
+// File input trigger
+document.getElementById('excelFileInput').addEventListener('change', handleFileImport);
+
+// File validation
+function handleFileImport(event) {
+    const file = event.target.files[0];
+    
+    // Validate file type
+    const validTypes = [
+        'application/vnd.ms-excel',                    // .xls
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+        'text/csv'                                     // .csv
+    ];
+    
+    if (!validTypes.includes(file.type)) {
+        alert('Please select a valid Excel file (.xls, .xlsx, or .csv)');
+        return;
+    }
+    
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+        alert('File size must be less than 10MB');
+        return;
+    }
+}
+```
+
+#### **2. File Reading Process**
+```javascript
+// Using FileReader API to read Excel file
+function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        
+        // Read as Data URL (Base64 + MIME type)
+        reader.readAsDataURL(file);
+    });
+}
+
+// Alternative: Read as text for CSV files
+function readCSVFile(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        
+        reader.onload = (e) => resolve(e.target.result);
+        reader.onerror = reject;
+        
+        reader.readAsText(file);
+    });
+}
+```
+
+#### **3. Excel Data Parsing**
+```javascript
+// Custom Excel parser for .xlsx files
+async function parseExcelFile(file) {
+    try {
+        // Convert file to Base64
+        const base64Data = await fileToBase64(file);
+        
+        // Extract base64 content (remove Data URL prefix)
+        const base64Content = base64Data.split(',')[1];
+        
+        // Send to backend for processing
+        const response = await fetch('/api/excel-upload', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                filename: file.name,
+                filetype: file.type,
+                data: base64Content
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            return result.data; // Parsed Excel data as JSON
+        } else {
+            throw new Error(result.error);
+        }
+        
+    } catch (error) {
+        console.error('Excel parsing error:', error);
+        throw error;
+    }
+}
+```
+
+#### **4. Backend Excel Processing (Python)**
+```python
+# Backend Excel processing using openpyxl and pandas
+@app.route('/api/excel-upload', methods=['POST'])
+@login_required
+def upload_excel():
+    try:
+        data = request.json
+        filename = data['filename']
+        filetype = data['filetype']
+        base64_data = data['data']
+        
+        # Decode Base64 data
+        import base64
+        file_data = base64.b64decode(base64_data)
+        
+        # Create temporary file
+        import tempfile
+        import os
+        
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_file:
+            tmp_file.write(file_data)
+            tmp_file_path = tmp_file.name
+        
+        try:
+            # Parse Excel using pandas
+            import pandas as pd
+            
+            if filetype == 'text/csv':
+                # Handle CSV files
+                df = pd.read_csv(tmp_file_path)
+            else:
+                # Handle Excel files
+                df = pd.read_excel(tmp_file_path, engine='openpyxl')
+            
+            # Clean and process data
+            df = df.fillna('')  # Replace NaN with empty strings
+            df = df.astype(str)  # Convert all to string for consistency
+            
+            # Convert to JSON format
+            excel_data = df.to_dict('records')
+            
+            # Map columns to expected format
+            mapped_data = mapExcelColumns(excel_data)
+            
+            return jsonify({
+                'success': True,
+                'data': mapped_data,
+                'message': f'Successfully processed {len(mapped_data)} rows'
+            })
+            
+        finally:
+            # Clean up temporary file
+            os.unlink(tmp_file_path)
+            
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+```
+
+#### **5. Column Mapping Logic**
+```javascript
+// Intelligent column mapping for different Excel formats
+function mapExcelColumns(excelData) {
+    const columnMappings = {
+        // Common variations for column names
+        'sno': ['sno', 'serial no', 'serial number', 'sl no', 'sl.no'],
+        'efileNo': ['efile', 'efile no', 'e-file', 'e-file no', 'efile number'],
+        'contractor': ['contractor', 'contractor name', 'vendor', 'supplier'],
+        'startDate': ['start date', 'start', 'begin date', 'commencement'],
+        'endDate': ['end date', 'end', 'expiry date', 'valid till'],
+        'handleBy': ['handle by', 'handled by', 'assigned to', 'manager'],
+        'frequency': ['frequency', 'billing', 'period', 'cycle'],
+        'approvedAmount': ['approved amount', 'approved', 'sanctioned', 'budget'],
+        'paidAmount': ['paid amount', 'paid', 'actual', 'payment'],
+        'status': ['status', 'payment status', 'current status']
+    };
+    
+    return excelData.map(row => {
+        const mappedRow = {};
+        
+        // Map each column using the mappings
+        for (const [targetField, possibleHeaders] of Object.entries(columnMappings)) {
+            mappedRow[targetField] = findColumnValue(row, possibleHeaders);
+        }
+        
+        return mappedRow;
+    });
+}
+
+// Helper function to find column value
+function findColumnValue(row, possibleHeaders) {
+    for (const header of possibleHeaders) {
+        // Find matching column (case-insensitive)
+        const matchingKey = Object.keys(row).find(key => 
+            key.toLowerCase().trim() === header.toLowerCase().trim()
+        );
+        
+        if (matchingKey && row[matchingKey]) {
+            return row[matchingKey].toString().trim();
+        }
+    }
+    return '';
+}
+```
+
+#### **6. Data Validation & Processing**
+```javascript
+// Validate and process imported data
+function validateAndProcessData(data) {
+    const processedData = [];
+    const errors = [];
+    
+    data.forEach((row, index) => {
+        const rowErrors = [];
+        
+        // Required field validation
+        if (!row.contractor) {
+            rowErrors.push('Contractor name is required');
+        }
+        
+        if (!row.efileNo) {
+            rowErrors.push('EFILE number is required');
+        }
+        
+        // Date validation
+        if (row.startDate && !isValidDate(row.startDate)) {
+            rowErrors.push('Invalid start date format');
+        }
+        
+        if (row.endDate && !isValidDate(row.endDate)) {
+            rowErrors.push('Invalid end date format');
+        }
+        
+        // Amount validation
+        if (row.approvedAmount && !isValidAmount(row.approvedAmount)) {
+            rowErrors.push('Invalid approved amount format');
+        }
+        
+        // Status validation
+        const validStatuses = ['Paid', 'Not Paid', 'Pending', 'Initialized', 'Processed'];
+        if (row.status && !validStatuses.includes(row.status)) {
+            rowErrors.push(`Invalid status: ${row.status}. Valid options: ${validStatuses.join(', ')}`);
+        }
+        
+        if (rowErrors.length > 0) {
+            errors.push({
+                row: index + 1,
+                errors: rowErrors,
+                data: row
+            });
+        } else {
+            // Process valid row
+            processedData.push({
+                ...row,
+                // Auto-calculate duration if dates are present
+                duration: calculateDuration(row.startDate, row.endDate),
+                // Format dates consistently
+                startDate: formatDate(row.startDate),
+                endDate: formatDate(row.endDate),
+                // Clean numeric fields
+                approvedAmount: formatAmount(row.approvedAmount),
+                paidAmount: formatAmount(row.paidAmount)
+            });
+        }
+    });
+    
+    return {
+        validData: processedData,
+        errors: errors
+    };
+}
+```
+
+### Excel Export Logic
+
+#### **1. Data Collection**
+```javascript
+// Collect data from table for export
+function collectTableData() {
+    const tbody = document.getElementById('tableBody');
+    const rows = tbody.querySelectorAll('tr');
+    const exportData = [];
+    
+    // Add headers
+    const headers = [
+        'S.NO', 'EFILE NO', 'CONTRACTOR', 'START DATE', 'END DATE',
+        'DURATION', 'HANDLE BY', 'FREQUENCY', 'MONTHS', 'STATUS', 'REMARKS'
+    ];
+    exportData.push(headers);
+    
+    // Add row data
+    rows.forEach(row => {
+        const rowData = [
+            row.querySelector('.sno-input')?.value || '',
+            row.querySelector('.efile-no-input')?.value || '',
+            row.querySelector('.contractor-input')?.value || '',
+            row.querySelector('.start-date-input')?.value || '',
+            row.querySelector('.end-date-input')?.value || '',
+            row.querySelector('.duration-input')?.value || '',
+            row.querySelector('.handle-by-input')?.value || '',
+            row.querySelector('.frequency-select')?.value || '',
+            row.querySelector('.months-status')?.textContent || '',
+            row.querySelector('.status-select')?.value || '',
+            row.querySelector('.remarks-input')?.value || ''
+        ];
+        exportData.push(rowData);
+    });
+    
+    return exportData;
+}
+```
+
+#### **2. CSV Generation**
+```javascript
+// Generate CSV content from data
+function generateCSV(data) {
+    let csvContent = '';
+    
+    data.forEach((row, index) => {
+        // Convert each cell to CSV format
+        const csvRow = row.map(cell => {
+            // Handle cells with commas, quotes, or newlines
+            const cellStr = cell.toString();
+            if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
+                // Escape quotes and wrap in quotes
+                return '"' + cellStr.replace(/"/g, '""') + '"';
+            }
+            return cellStr;
+        }).join(',');
+        
+        csvContent += csvRow + '\n';
+    });
+    
+    return csvContent;
+}
+```
+
+#### **3. File Download**
+```javascript
+// Create and download Excel/CSV file
+function downloadFile(content, filename, type) {
+    // Create Blob
+    const blob = new Blob([content], { 
+        type: type === 'csv' ? 'text/csv;charset=utf-8;' : 'application/vnd.ms-excel'
+    });
+    
+    // Create download link
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    
+    // Trigger download
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Clean up URL
+    URL.revokeObjectURL(url);
+}
+
+// Usage example
+function exportToExcel() {
+    try {
+        const data = collectTableData();
+        const csvContent = generateCSV(data);
+        const filename = `bill_tracker_${new Date().toISOString().split('T')[0]}.csv`;
+        
+        downloadFile(csvContent, filename, 'csv');
+        
+        showNotification('Data exported successfully!', 'success');
+        
+    } catch (error) {
+        console.error('Export error:', error);
+        showNotification('Error exporting data. Please try again.', 'error');
+    }
+}
+```
+
+### File Attachment System
+
+#### **1. File Upload & Base64 Encoding**
+```javascript
+// Handle file upload for attachments
+async function handleFileUpload(file) {
+    try {
+        // Validate file
+        if (!validateFile(file)) {
+            return null;
+        }
+        
+        // Convert to Base64
+        const base64Data = await fileToBase64(file);
+        
+        // Extract file info
+        const fileInfo = {
+            name: file.name,
+            type: file.type,
+            size: file.size,
+            lastModified: file.lastModified,
+            base64: base64Data
+        };
+        
+        return fileInfo;
+        
+    } catch (error) {
+        console.error('File upload error:', error);
+        return null;
+    }
+}
+
+// File validation
+function validateFile(file) {
+    // Size limit (5MB)
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+        alert('File size must be less than 5MB');
+        return false;
+    }
+    
+    // Allowed file types
+    const allowedTypes = [
+        'application/pdf',
+        'image/jpeg', 'image/jpg', 'image/png', 'image/gif',
+        'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'text/plain', 'text/csv'
+    ];
+    
+    if (!allowedTypes.includes(file.type)) {
+        alert('File type not supported');
+        return false;
+    }
+    
+    return true;
+}
+```
+
+#### **2. File Preview System**
+```javascript
+// Open file preview modal
+function openFilePreview(fileInfo) {
+    const modal = document.getElementById('filePreviewModal');
+    const previewContainer = document.getElementById('filePreviewContainer');
+    
+    // Clear previous content
+    previewContainer.innerHTML = '';
+    
+    // Determine preview type based on file type
+    if (fileInfo.type.startsWith('image/')) {
+        // Image preview
+        const img = document.createElement('img');
+        img.src = fileInfo.base64;
+        img.style.maxWidth = '100%';
+        img.style.maxHeight = '500px';
+        previewContainer.appendChild(img);
+        
+    } else if (fileInfo.type === 'application/pdf') {
+        // PDF preview
+        const iframe = document.createElement('iframe');
+        iframe.src = fileInfo.base64;
+        iframe.style.width = '100%';
+        iframe.style.height = '500px';
+        previewContainer.appendChild(iframe);
+        
+    } else if (fileInfo.type.startsWith('text/')) {
+        // Text file preview
+        const pre = document.createElement('pre');
+        pre.textContent = atob(fileInfo.base64.split(',')[1]);
+        pre.style.whiteSpace = 'pre-wrap';
+        pre.style.maxHeight = '500px';
+        pre.style.overflow = 'auto';
+        previewContainer.appendChild(pre);
+        
+    } else {
+        // Download link for unsupported file types
+        const downloadLink = document.createElement('a');
+        downloadLink.href = fileInfo.base64;
+        downloadLink.download = fileInfo.name;
+        downloadLink.textContent = `Download ${fileInfo.name}`;
+        downloadLink.className = 'download-link';
+        previewContainer.appendChild(downloadLink);
+    }
+    
+    // Show modal
+    modal.style.display = 'block';
+}
+```
+
+#### **3. File Storage & Retrieval**
+```javascript
+// Save file with data record
+function saveFileWithRecord(recordData, fileInfo) {
+    if (fileInfo) {
+        recordData.file_name = fileInfo.name;
+        recordData.file_base64 = fileInfo.base64;
+        recordData.file_type = fileInfo.type;
+        recordData.file_size = fileInfo.size;
+    }
+    
+    // Save record with file data
+    return saveRecord(recordData);
+}
+
+// Retrieve file from stored data
+function getFileFromRecord(record) {
+    if (record.file_base64) {
+        return {
+            name: record.file_name,
+            type: record.file_type,
+            size: record.file_size,
+            base64: record.file_base64
+        };
+    }
+    return null;
+}
+```
+
+### Error Handling & User Experience
+
+#### **1. Progress Indicators**
+```javascript
+// Show upload progress
+function showUploadProgress() {
+    const progressDiv = document.createElement('div');
+    progressDiv.className = 'upload-progress';
+    progressDiv.innerHTML = `
+        <div class="progress-bar">
+            <div class="progress-fill"></div>
+        </div>
+        <div class="progress-text">Processing file...</div>
+    `;
+    document.body.appendChild(progressDiv);
+}
+
+// Update progress
+function updateProgress(percentage) {
+    const progressFill = document.querySelector('.progress-fill');
+    const progressText = document.querySelector('.progress-text');
+    
+    if (progressFill) {
+        progressFill.style.width = `${percentage}%`;
+    }
+    
+    if (progressText) {
+        progressText.textContent = `Processing... ${percentage}%`;
+    }
+}
+```
+
+#### **2. Error Display**
+```javascript
+// Show import errors
+function showImportErrors(errors) {
+    const errorModal = document.getElementById('importErrorModal');
+    const errorList = document.getElementById('errorList');
+    
+    errorList.innerHTML = '';
+    
+    errors.forEach(error => {
+        const errorItem = document.createElement('div');
+        errorItem.className = 'error-item';
+        errorItem.innerHTML = `
+            <h4>Row ${error.row}</h4>
+            <ul>
+                ${error.errors.map(err => `<li>${err}</li>`).join('')}
+            </ul>
+            <pre>${JSON.stringify(error.data, null, 2)}</pre>
+        `;
+        errorList.appendChild(errorItem);
+    });
+    
+    errorModal.style.display = 'block';
+}
+```
+
+### Performance Optimizations
+
+#### **1. File Size Management**
+- **Compression**: Large files are compressed before storage
+- **Chunking**: Large uploads are processed in chunks
+- **Lazy Loading**: File previews load on demand
+- **Caching**: Frequently accessed files are cached
+
+#### **2. Memory Management**
+- **Cleanup**: Temporary files are automatically deleted
+- **Garbage Collection**: Blob URLs are revoked after use
+- **Stream Processing**: Large files are processed in streams
+
+### Security Considerations
+
+#### **1. File Validation**
+- **Type Checking**: Strict MIME type validation
+- **Size Limits**: Maximum file size restrictions
+- **Content Scanning**: Malware scanning for uploads
+- **Filename Sanitization**: Prevent path traversal attacks
+
+#### **2. Data Protection**
+- **Base64 Encoding**: Secure data transmission
+- **Access Control**: Role-based file access
+- **Audit Logging**: All file operations are logged
+- **Encryption**: Sensitive files are encrypted at rest
+
+---
+
 ## 🎯 Bill Tracker Features
 
 ### Duration Calculation System

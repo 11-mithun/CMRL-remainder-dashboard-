@@ -137,6 +137,19 @@ def init_database():
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             """)
+
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS bill_tracker_monthly_status (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    year INT NOT NULL,
+                    month VARCHAR(20) NOT NULL,
+                    row_index INT NOT NULL,
+                    status VARCHAR(50) DEFAULT '',
+                    remarks TEXT,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    UNIQUE (year, month, row_index)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """)
             
             # Create epbg table
             cursor.execute("""
@@ -1086,6 +1099,148 @@ def save_bill_tracker():
         return jsonify({'message': 'Bill tracker saved successfully', 'count': len(records_to_insert)}), 200
     except Error as e:
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/bill-tracker/save', methods=['POST'])
+@editor_required
+def save_bill_tracker_monthly_status():
+    try:
+        data = request.get_json() or {}
+        year = data.get('year')
+        month = data.get('month')
+        row_index = data.get('rowIndex')
+        status = data.get('status', '')
+        remarks = data.get('remarks', '')
+
+        if year is None or month is None or row_index is None:
+            return jsonify({'error': 'Missing required fields: year, month, rowIndex'}), 400
+
+        try:
+            year = int(year)
+            row_index = int(row_index)
+        except (TypeError, ValueError):
+            return jsonify({'error': 'year and rowIndex must be integers'}), 400
+
+        month = str(month).strip()
+        if not month:
+            return jsonify({'error': 'month must be a non-empty string'}), 400
+
+        connection = get_db_connection()
+        if not connection:
+            return jsonify({'error': 'Database connection failed'}), 500
+
+        cursor = connection.cursor()
+        upsert_query = """
+            INSERT INTO bill_tracker_monthly_status (year, month, row_index, status, remarks)
+            VALUES (%s, %s, %s, %s, %s)
+            ON DUPLICATE KEY UPDATE
+                status = VALUES(status),
+                remarks = VALUES(remarks),
+                updated_at = CURRENT_TIMESTAMP
+        """
+        cursor.execute(upsert_query, (year, month, row_index, status, remarks))
+        connection.commit()
+
+        cursor.close()
+        connection.close()
+
+        return jsonify({'message': 'Saved', 'year': year, 'month': month, 'rowIndex': row_index}), 200
+    except Error as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/bill-tracker/load', methods=['GET'])
+@login_required
+def load_bill_tracker_monthly_status():
+    try:
+        year = request.args.get('year')
+        month = request.args.get('month')
+
+        if year is None or month is None:
+            return jsonify({'error': 'Missing required query params: year, month'}), 400
+
+        try:
+            year = int(year)
+        except (TypeError, ValueError):
+            return jsonify({'error': 'year must be an integer'}), 400
+
+        month = str(month).strip()
+        if not month:
+            return jsonify({'error': 'month must be a non-empty string'}), 400
+
+        connection = get_db_connection()
+        if not connection:
+            return jsonify({'error': 'Database connection failed'}), 500
+
+        cursor = connection.cursor(dictionary=True)
+        # Ensure table exists
+        cursor.execute("SHOW TABLES LIKE 'bill_tracker_monthly_status'")
+        if not cursor.fetchone():
+            return jsonify({'error': 'bill_tracker_monthly_status table does not exist'}), 500
+        
+        cursor.execute(
+            """
+            SELECT row_index, status, remarks
+            FROM bill_tracker_monthly_status
+            WHERE year = %s AND month = %s
+            ORDER BY row_index
+            """,
+            (year, month)
+        )
+        records = cursor.fetchall()
+
+        cursor.close()
+        connection.close()
+
+        result = []
+        for r in records:
+            result.append({
+                'rowIndex': int(r.get('row_index')),
+                'status': r.get('status') or '',
+                'remarks': r.get('remarks') or ''
+            })
+
+        return jsonify(result), 200
+    except Error as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/bill-tracker/load-year', methods=['GET'])
+@login_required
+def load_bill_tracker_year_status():
+    try:
+        year = request.args.get('year')
+        if not year:
+            return jsonify({'error': 'Missing year'}), 400
+        
+        try:
+            year = int(year)
+        except (TypeError, ValueError):
+            return jsonify({'error': 'year must be an integer'}), 400
+
+        connection = get_db_connection()
+        if not connection:
+            return jsonify({'error': 'Database connection failed'}), 500
+
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute(
+            """
+            SELECT month, row_index as rowIndex, status, remarks
+            FROM bill_tracker_monthly_status
+            WHERE year = %s
+            ORDER BY month, row_index
+            """,
+            (year,)
+        )
+        records = cursor.fetchall()
+
+        cursor.close()
+        connection.close()
+        
+        return jsonify(records), 200
+    except Error as e:
+        return jsonify({'error': str(e)}), 500
+
 
 # ============= EPBG ENDPOINTS =============
 
